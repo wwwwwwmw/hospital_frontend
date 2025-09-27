@@ -3,7 +3,6 @@ import '../models/doctor.dart';
 import '../models/appointment.dart';
 import '../models/time_slot.dart';
 
-
 // Một lớp đơn giản để chứa User và Token trả về từ API
 class AuthResponse {
   final String token;
@@ -140,14 +139,14 @@ class ApiService {
   Future<void> createAppointment({
     required String token,
     required String doctorId,
-    required DateTime slot,
+    required DateTime startTime,
   }) async {
     try {
       await _dio.post(
         '/appointments',
         data: {
           'doctor': doctorId,
-          'startTime': slot.toIso8601String(),
+          'startTime': startTime.toIso8601String(),
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
