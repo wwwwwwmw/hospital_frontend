@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert'; // Import for jsonEncode
 import '../services/api_service.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -17,7 +18,9 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Xử lý đăng nhập
+  bool get isAdmin => _user != null && (_user!['role'] == 'admin');
+  bool get isStaff => _user != null && (_user!['role'] == 'staff');
+
   Future<void> login(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -29,8 +32,9 @@ class AuthProvider with ChangeNotifier {
       _token = authResponse.token;
       _user = authResponse.user;
       
-      // Lưu token vào storage an toàn
       await _storage.write(key: 'authToken', value: _token);
+      await _storage.write(key: 'user', value: jsonEncode(_user));
+
     } catch (e) {
       _errorMessage = e.toString();
     }
@@ -39,71 +43,69 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Xử lý đăng ký
   Future<void> register(String fullName, String email, String password) async {
-    _isLoading = true;
+     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+     try {
+       final authResponse = await _apiService.register(fullName: fullName, email: email, password: password);
+       _token = authResponse.token;
+       _user = authResponse.user;
+       await _storage.write(key: 'authToken', value: _token);
+       await _storage.write(key: 'user', value: jsonEncode(_user));
 
-    try {
-      // Backend mới sẽ tự động đăng nhập sau khi đăng ký
-      final authResponse = await _apiService.register(
-          fullName: fullName, email: email, password: password);
-      _token = authResponse.token;
-      _user = authResponse.user;
-
-      // Lưu token vào storage
-      await _storage.write(key: 'authToken', value: _token);
-    } catch (e) {
-      _errorMessage = e.toString();
-    }
-    
-    _isLoading = false;
-    notifyListeners();
+     } catch (e) {
+       _errorMessage = e.toString();
+     }
+      _isLoading = false;
+      notifyListeners();
   }
 
-  /// Xử lý đổi mật khẩu
-  Future<bool> changePassword({required String oldPassword, required String newPassword}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    
-    bool success = false;
-    try {
-      await _apiService.changePassword(
-        token: _token!, // Cần token để xác thực
-        oldPassword: oldPassword, 
-        newPassword: newPassword
-      );
-      success = true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      success = false;
-    }
-
-    _isLoading = false;
-    notifyListeners();
-    return success;
-  }
-
-  /// Kiểm tra xem có token đã lưu không để tự động đăng nhập
   Future<void> tryAutoLogin() async {
     final storedToken = await _storage.read(key: 'authToken');
+    final storedUser = await _storage.read(key: 'user');
     if (storedToken != null) {
       _token = storedToken;
-      // Trong ứng dụng thực tế, bạn nên có một API để xác thực token
-      // và lấy lại thông tin người dùng ở đây.
-      // Ví dụ: _user = await _apiService.getMe(_token!);
+      if (storedUser != null) {
+        _user = jsonDecode(storedUser);
+      }
       notifyListeners();
     }
   }
 
-  /// Xử lý đăng xuất
   Future<void> logout() async {
     _token = null;
     _user = null;
-    await _storage.delete(key: 'authToken');
+    await _storage.deleteAll();
     notifyListeners();
+  }
+
+  // SỬA Ở ĐÂY: Thêm 'required' để định nghĩa tham số được đặt tên
+   Future<bool> changePassword({required String oldPassword, required String newPassword}) async {
+    if (_token == null) {
+      _errorMessage = "Bạn chưa đăng nhập.";
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _apiService.changePassword(
+        token: _token!,
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 }
 

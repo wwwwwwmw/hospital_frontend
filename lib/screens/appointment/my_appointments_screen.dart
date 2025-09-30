@@ -1,103 +1,157 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/appointment_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/date_formatter.dart';
 
+class MyAppointmentsScreen extends StatefulWidget {
+  const MyAppointmentsScreen({super.key});
 
-import '../../models/appointment.dart';
-import '../../models/time_slot.dart';
-import '../../services/api_service.dart';
+  @override
+  State<MyAppointmentsScreen> createState() => _MyAppointmentsScreenState();
+}
 
-
-class AppointmentProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
-
-  // Trạng thái cho việc đặt lịch
-  DateTime _selectedDate = DateTime.now();
-  List<TimeSlot> _availableSlots = [];
-  bool _isLoadingSlots = false;
-  DateTime? _selectedSlot;
-  bool _isBooking = false;
-  String? _bookingError;
-
-  // Trạng thái cho việc xem lịch hẹn
-  List<Appointment> _myAppointments = [];
-  bool _isLoadingAppointments = false;
-  String? _fetchAppointmentsError; // BIẾN MỚI ĐỂ LƯU LỖI KHI TẢI LỊCH HẸN
-
-  // Getters
-  DateTime get selectedDate => _selectedDate;
-  List<TimeSlot> get availableSlots => _availableSlots;
-  bool get isLoadingSlots => _isLoadingSlots;
-  DateTime? get selectedSlot => _selectedSlot;
-  bool get isBooking => _isBooking;
-  String? get bookingError => _bookingError;
-  List<Appointment> get myAppointments => _myAppointments;
-  bool get isLoadingAppointments => _isLoadingAppointments;
-  String? get fetchAppointmentsError => _fetchAppointmentsError; // GETTER MỚI
-
-  void selectDate(DateTime date) {
-    _selectedDate = date;
-    _selectedSlot = null;
-    notifyListeners();
+class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Gọi provider để lấy danh sách lịch hẹn ngay khi màn hình được tạo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.token != null) {
+        Provider.of<AppointmentProvider>(context, listen: false)
+            .fetchMyAppointments(authProvider.token!);
+      }
+    });
   }
 
-  void selectSlot(DateTime slot) {
-    _selectedSlot = slot;
-    notifyListeners();
-  }
+  // Hàm xử lý việc hủy lịch hẹn
+  Future<void> _cancelAppointment(String appointmentId) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final appointmentProvider =
+        Provider.of<AppointmentProvider>(context, listen: false);
 
-  Future<void> fetchAvailableSlots(String doctorId) async {
-    _isLoadingSlots = true;
-    _availableSlots = [];
-    notifyListeners();
-    try {
-      final dateString = "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}";
-      _availableSlots = await _apiService.getSlotsByDoctorAndDate(doctorId, dateString);
-    } catch (e) {
-      print(e);
-    }
-    _isLoadingSlots = false;
-    notifyListeners();
-  }
+    // Hiển thị dialog xác nhận
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận hủy'),
+        content: const Text('Bạn có chắc chắn muốn hủy lịch hẹn này?'),
+        actions: [
+          TextButton(
+            child: const Text('Không'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          TextButton(
+            child: const Text('Hủy lịch'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
 
-  Future<bool> createAppointment({
-    required String token,
-    required String doctorId,
-  }) async {
-    if (_selectedSlot == null) return false;
-
-    _isBooking = true;
-    _bookingError = null;
-    notifyListeners();
-
-    try {
-      await _apiService.createAppointment(
-        token: token,
-        doctorId: doctorId,
-        startTime: _selectedSlot!,
+    if (confirm == true && authProvider.token != null) {
+      final success = await appointmentProvider.cancelAppointment(
+        authProvider.token!,
+        appointmentId,
       );
-      await fetchMyAppointments(token);
-      _isBooking = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _bookingError = e.toString();
-      _isBooking = false;
-      notifyListeners();
-      return false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Hủy lịch hẹn thành công!'
+                : 'Lỗi: ${appointmentProvider.fetchAppointmentsError}'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<void> fetchMyAppointments(String token) async {
-    _isLoadingAppointments = true;
-    _fetchAppointmentsError = null; // Reset lỗi
-    notifyListeners();
-    try {
-      _myAppointments = await _apiService.getMyAppointments(token);
-    } catch (e) {
-      _fetchAppointmentsError = e.toString(); // Gán lỗi
-      print(e);
-    }
-    _isLoadingAppointments = false;
-    notifyListeners();
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Lịch hẹn của tôi'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              if (authProvider.token != null) {
+                Provider.of<AppointmentProvider>(context, listen: false)
+                    .fetchMyAppointments(authProvider.token!);
+              }
+            },
+          ),
+        ],
+      ),
+      body: Consumer<AppointmentProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoadingAppointments) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.fetchAppointmentsError != null) {
+            return Center(
+                child: Text('Lỗi: ${provider.fetchAppointmentsError}'));
+          }
+
+          if (provider.myAppointments.isEmpty) {
+            return const Center(
+              child: Text('Bạn chưa có lịch hẹn nào.'),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: provider.myAppointments.length,
+            itemBuilder: (context, index) {
+              final appointment = provider.myAppointments[index];
+              final isCancelled = appointment.status == 'cancelled';
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                color: isCancelled ? Colors.grey[300] : null,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: isCancelled ? Colors.grey : (appointment.status == 'confirmed' ? Colors.green : Colors.orange),
+                    child: Icon(
+                      isCancelled ? Icons.cancel_outlined : (appointment.status == 'confirmed' ? Icons.check_circle_outline : Icons.hourglass_empty),
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(
+                    'BS. ${appointment.doctor.fullName}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      decoration: isCancelled ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                          'Ngày: ${DateFormatter.formatDate(appointment.startTime)}'),
+                      Text('Giờ: ${DateFormatter.formatTime(appointment.startTime)}'),
+                      Text('Trạng thái: ${appointment.status}'),
+                    ],
+                  ),
+                  trailing: isCancelled
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () => _cancelAppointment(appointment.id),
+                        ),
+                  isThreeLine: true,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 

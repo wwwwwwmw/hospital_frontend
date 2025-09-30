@@ -9,13 +9,17 @@ part of 'doctor.dart';
 Doctor _$DoctorFromJson(Map<String, dynamic> json) => Doctor(
   id: json['_id'] as String,
   fullName: json['fullName'] as String,
-  phone: json['phone'] as String,
   email: json['email'] as String,
+  phone: json['phone'] as String?,
+  department: Department.fromJson(json['department'] as Map<String, dynamic>),
+  isActive: json['isActive'] as bool,
 );
 
 Map<String, dynamic> _$DoctorToJson(Doctor instance) => <String, dynamic>{
   '_id': instance.id,
   'fullName': instance.fullName,
-  'phone': instance.phone,
   'email': instance.email,
+  'phone': instance.phone,
+  'department': instance.department.toJson(),
+  'isActive': instance.isActive,
 };

@@ -1,26 +1,33 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'doctor.dart'; // Giả sử backend trả về thông tin doctor đầy đủ
+import 'doctor.dart';
+import 'patient.dart';
 
 part 'appointment.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true) // Thêm explicitToJson
 class Appointment {
   @JsonKey(name: '_id')
   final String id;
-  final Doctor doctor;
-  final String patient; // ID của bệnh nhân
-  final DateTime appointmentDate;
+  
+  final Doctor doctor; 
+  
+  final Patient? patient; // Sửa thành Patient?
+  
+  final DateTime startTime; // Sửa thành startTime
+  
   final String status;
 
   Appointment({
     required this.id,
     required this.doctor,
-    required this.patient,
-    required this.appointmentDate,
+    this.patient,
+    required this.startTime,
     required this.status,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) =>
       _$AppointmentFromJson(json);
+
   Map<String, dynamic> toJson() => _$AppointmentToJson(this);
 }
+

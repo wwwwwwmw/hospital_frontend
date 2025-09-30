@@ -1,8 +1,13 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'config/router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/doctor_provider.dart';
+import 'providers/appointment_provider.dart'; // Import provider còn thiếu
+import 'providers/admin_provider.dart';
+import 'providers/patient_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,7 +31,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     // Tạo AuthProvider và AppRouter một lần duy nhất khi widget được khởi tạo
     _authProvider = AuthProvider()..tryAutoLogin();
-    _appRouter = AppRouter(_authProvider);
+    _appRouter = AppRouter(authProvider: _authProvider); // Sửa tên tham số
   }
 
   @override
@@ -37,6 +42,9 @@ class _MyAppState extends State<MyApp> {
         // Dùng .value để cung cấp một instance đã tồn tại của AuthProvider
         ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => DoctorProvider()),
+        ChangeNotifierProvider(create: (_) => AppointmentProvider()), // Bổ sung provider còn thiếu
+        ChangeNotifierProvider(create: (_) => PatientProvider()),
+        ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       // MaterialApp.router sẽ sử dụng router đã được tạo và không thay đổi
       child: MaterialApp.router(

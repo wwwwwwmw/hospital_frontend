@@ -8,79 +8,93 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lắng nghe AuthProvider nhưng không cần build lại widget này khi nó thay đổi
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    // Lấy thông tin người dùng, nếu chưa có thì hiển thị rỗng
+    // Lấy AuthProvider để truy cập thông tin người dùng và hàm logout
+    final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
-    final fullName = user?['fullName'] ?? 'Không có thông tin';
-    final email = user?['email'] ?? 'Không có thông tin';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hồ sơ của tôi'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Center(
-              child: CircleAvatar(
-                radius: 50,
-                child: Icon(Icons.person, size: 50),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: const Text('Họ và Tên'),
-                    subtitle: Text(fullName),
+      body: user == null
+          ? const Center(
+              child: Text('Không thể tải thông tin người dùng.'),
+            )
+          : ListView(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  child: Text(
+                    user['fullName']?[0] ?? 'U', // Lấy chữ cái đầu của tên
+                    style: Theme.of(context).textTheme.headlineLarge,
                   ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.email_outlined),
-                    title: const Text('Email'),
-                    subtitle: Text(email),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    user['fullName'] ?? 'Unknown User',
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                ],
-              ),
+                ),
+                Center(
+                  child: Text(
+                    user['email'] ?? 'No email',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('Chỉnh sửa thông tin cá nhân'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    context.go('/edit-profile');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.lock_outline),
+                  title: const Text('Đổi mật khẩu'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    context.go('/change-password');
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Đăng xuất',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () async {
+                    // Hiển thị dialog xác nhận trước khi đăng xuất
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text('Xác nhận đăng xuất'),
+                        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Hủy'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Đăng xuất'),
+                          ),
+                        ],
+                      ),
+                    );
+                    
+                    if (confirm == true) {
+                      await authProvider.logout();
+                    }
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            // Nút đổi mật khẩu
-            ElevatedButton.icon(
-              icon: const Icon(Icons.lock_outline),
-              label: const Text('Đổi mật khẩu'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              onPressed: () {
-                context.go('/change-password');
-              },
-            ),
-            const SizedBox(height: 16),
-            // Nút đăng xuất
-            OutlinedButton.icon(
-              icon: const Icon(Icons.logout),
-              label: const Text('Đăng xuất'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-              ),
-              onPressed: () {
-                // Gọi hàm logout từ provider
-                authProvider.logout();
-                // GoRouter sẽ tự động chuyển hướng về trang login
-                // do thay đổi trạng thái isAuthenticated
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

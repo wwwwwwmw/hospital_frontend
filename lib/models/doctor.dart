@@ -1,17 +1,29 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'department.dart';
 
-part 'doctor.g.dart'; // File này sẽ được tự động sinh ra
+part 'doctor.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class Doctor {
-  @JsonKey(name: '_id') // Ánh xạ _id từ MongoDB
+  @JsonKey(name: '_id')
   final String id;
+  
   final String fullName;
-  final String phone;
   final String email;
-  // Thêm các trường khác nếu cần
+  final String? phone;
+  final Department department;
 
-  Doctor({required this.id, required this.fullName, required this.phone, required this.email});
+  // Bổ sung trường isActive còn thiếu
+  final bool isActive;
+
+  Doctor({
+    required this.id,
+    required this.fullName,
+    required this.email,
+    this.phone,
+    required this.department,
+    required this.isActive,
+  });
 
   factory Doctor.fromJson(Map<String, dynamic> json) => _$DoctorFromJson(json);
   Map<String, dynamic> toJson() => _$DoctorToJson(this);

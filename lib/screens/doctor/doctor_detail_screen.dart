@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/doctor_provider.dart';
 
 class DoctorDetailScreen extends StatefulWidget {
@@ -46,6 +47,12 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                       doctor.fullName,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
+                    const SizedBox(height: 8),
+                    // Hiển thị tên Khoa
+                    Text(
+                      doctor.department.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+                    ),
                     const SizedBox(height: 16),
                     const Divider(),
                     ListTile(
@@ -56,7 +63,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                     ListTile(
                       leading: const Icon(Icons.phone_outlined),
                       title: const Text('Số điện thoại'),
-                      subtitle: Text(doctor.phone),
+                      // SỬA Ở ĐÂY: Dùng toán tử '??' để cung cấp giá trị mặc định
+                      subtitle: Text(doctor.phone ?? 'Chưa cập nhật'),
                     ),
                     const SizedBox(height: 24),
                     Center(
@@ -64,7 +72,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                         icon: const Icon(Icons.calendar_month),
                         label: const Text('Đặt lịch hẹn'),
                         onPressed: () {
-                          // Chức năng đặt lịch hẹn sẽ làm ở bước tiếp theo
+                          // Điều hướng đến trang đặt lịch hẹn
+                          context.go('/book-appointment/${doctor.id}');
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
