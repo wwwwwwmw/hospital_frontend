@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/doctor_provider.dart';
+import '../../providers/doctor_list_provider.dart';
 
 class DoctorDetailScreen extends StatefulWidget {
   final String doctorId;
@@ -17,7 +17,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
     super.initState();
     // Gọi provider để lấy dữ liệu chi tiết ngay khi màn hình được tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<DoctorProvider>(context, listen: false)
+      Provider.of<DoctorListProvider>(context, listen: false)
           .fetchDoctorById(widget.doctorId);
     });
   }
@@ -26,7 +26,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Thông tin Bác sĩ')),
-      body: Consumer<DoctorProvider>(
+      body: Consumer<DoctorListProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading || provider.selectedDoctor == null) {
             return const Center(child: CircularProgressIndicator());

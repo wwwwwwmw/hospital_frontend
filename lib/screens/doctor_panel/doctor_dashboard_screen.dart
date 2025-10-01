@@ -3,14 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
-  const AdminDashboardScreen({super.key});
+class DoctorDashboardScreen extends StatelessWidget {
+  const DoctorDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: const Text('Bảng điều khiển Bác sĩ'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -26,20 +26,21 @@ class AdminDashboardScreen extends StatelessWidget {
         children: [
           _buildDashboardCard(
             context,
-            icon: Icons.medical_services_outlined,
-            title: 'Quản lý Bác sĩ',
-            subtitle: 'Thêm, sửa, xóa thông tin bác sĩ',
+            icon: Icons.calendar_today_outlined,
+            title: 'Xem lịch hẹn',
+            subtitle: 'Xem danh sách các lịch hẹn đã đặt',
             onTap: () {
-              context.go('/admin/manage-doctors');
+              context.go('/doctor/appointments');
             },
           ),
           _buildDashboardCard(
             context,
-            icon: Icons.manage_accounts_outlined,
-            title: 'Quản lý Người dùng',
-            subtitle: 'Xem, sửa, xóa người dùng và bệnh nhân',
+            icon: Icons.schedule_outlined,
+            title: 'Đăng ký lịch làm việc',
+            subtitle: 'Thiết lập thời gian làm việc trong tuần',
             onTap: () {
-              context.go('/admin/manage-users');
+              // SỬA Ở ĐÂY
+              context.go('/doctor/register-schedule');
             },
           ),
         ],
@@ -47,7 +48,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // Widget helper để tạo các thẻ chức năng cho gọn
   Widget _buildDashboardCard(
     BuildContext context, {
     required IconData icon,
@@ -67,4 +67,3 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 }
-

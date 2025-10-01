@@ -21,7 +21,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (authProvider.token != null) {
         Provider.of<AppointmentProvider>(context, listen: false)
-            // SỬA Ở ĐÂY: Dùng tham số được đặt tên
             .fetchMyAppointments(token: authProvider.token!);
       }
     });
@@ -53,16 +52,17 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
 
     if (confirm == true && authProvider.token != null) {
+      // SỬA Ở ĐÂY: Dùng tham số được đặt tên
       final success = await appointmentProvider.cancelAppointment(
-        authProvider.token!,
-        appointmentId,
+        token: authProvider.token!,
+        appointmentId: appointmentId,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success
                 ? 'Hủy lịch hẹn thành công!'
-                : 'Lỗi: ${appointmentProvider.fetchAppointmentsError}'),
+                : 'Lỗi: ${appointmentProvider.fetchAppointmentsError ?? "Thao tác thất bại"}'),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
@@ -82,7 +82,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             onPressed: () {
               if (authProvider.token != null) {
                 Provider.of<AppointmentProvider>(context, listen: false)
-                    // SỬA Ở ĐÂY: Dùng tham số được đặt tên
                     .fetchMyAppointments(token: authProvider.token!);
               }
             },

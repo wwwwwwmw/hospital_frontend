@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
-
 import '../services/api_service.dart';
 import '../models/doctor.dart';
 import '../models/patient.dart';
 import '../models/appointment.dart';
 import '../models/department.dart';
+import '../models/user.dart';
 
 class AdminProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -15,6 +14,7 @@ class AdminProvider with ChangeNotifier {
   List<Patient> _allPatients = [];
   List<Appointment> _allAppointments = [];
   List<Department> _allDepartments = [];
+  List<User> _allUsers = [];
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -24,6 +24,7 @@ class AdminProvider with ChangeNotifier {
   List<Patient> get allPatients => _allPatients;
   List<Appointment> get allAppointments => _allAppointments;
   List<Department> get allDepartments => _allDepartments;
+  List<User> get allUsers => _allUsers;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -49,6 +50,8 @@ class AdminProvider with ChangeNotifier {
     try {
       await _apiService.createDoctor(token: token, doctorData: doctorData);
       await fetchAllDoctors(token: token); // Refresh list
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -67,6 +70,8 @@ class AdminProvider with ChangeNotifier {
       await _apiService.updateDoctor(
           token: token, doctorId: doctorId, doctorData: doctorData);
       await fetchAllDoctors(token: token); // Refresh list
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -103,6 +108,119 @@ class AdminProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<bool> createPatient({required String token, required Map<String, dynamic> patientData}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _apiService.adminCreatePatient(token: token, patientData: patientData);
+      await fetchAllPatients(token: token);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePatient({required String token, required String patientId, required Map<String, dynamic> patientData}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _apiService.adminUpdatePatient(token: token, patientId: patientId, patientData: patientData);
+      await fetchAllPatients(token: token);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deletePatient({required String token, required String patientId}) async {
+    _errorMessage = null;
+    try {
+      await _apiService.adminDeletePatient(token: token, patientId: patientId);
+      _allPatients.removeWhere((p) => p.id == patientId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // --- User Management ---
+  Future<void> fetchAllUsers({required String token}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _allUsers = await _apiService.adminGetAllUsers(token: token);
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+   Future<bool> updateUser({required String token, required String userId, required Map<String, dynamic> userData}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _apiService.adminUpdateUser(token: token, userId: userId, userData: userData);
+      await fetchAllUsers(token: token); // Refresh list
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteUser({required String token, required String userId}) async {
+    _errorMessage = null;
+    try {
+      await _apiService.adminDeleteUser(token: token, userId: userId);
+      _allUsers.removeWhere((u) => u.id == userId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> fetchPatientsForUser({required String token, required String userId}) async {
+     _isLoading = true;
+    _errorMessage = null;
+    _patientsForSelectedUser = []; // Clear old data
+    notifyListeners();
+    try {
+      _patientsForSelectedUser = await _apiService.adminGetPatientsForUser(token: token, userId: userId);
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+   List<Patient> _patientsForSelectedUser = [];
+   List<Patient> get patientsForSelectedUser => _patientsForSelectedUser;
+
 
   // --- Appointment Management ---
   Future<void> fetchAllAppointments({required String token}) async {
@@ -163,6 +281,8 @@ class AdminProvider with ChangeNotifier {
     try {
       await _apiService.createDepartment(token: token, departmentData: departmentData);
       await fetchAllDepartments(token: token); // Refresh list
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -179,6 +299,8 @@ class AdminProvider with ChangeNotifier {
     try {
       await _apiService.updateDepartment(token: token, departmentId: departmentId, departmentData: departmentData);
       await fetchAllDepartments(token: token); // Refresh list
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString();

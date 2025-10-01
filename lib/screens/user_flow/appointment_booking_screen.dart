@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/appointment_provider.dart';
-import '../../providers/doctor_provider.dart';
+import '../../providers/doctor_list_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/time_slot_grid.dart';
 import '../../utils/date_formatter.dart';
@@ -27,7 +27,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       
       // Reset trạng thái và tải dữ liệu cần thiết
       appointmentProvider.selectDate(DateTime.now()); // Luôn bắt đầu với ngày hôm nay
-      Provider.of<DoctorProvider>(context, listen: false)
+      Provider.of<DoctorListProvider>(context, listen: false)
           .fetchDoctorById(widget.doctorId);
       appointmentProvider.fetchAvailableSlots(widget.doctorId);
     });
@@ -53,7 +53,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   @override
   Widget build(BuildContext context) {
     // Lấy các provider để sử dụng
-    final doctorProvider = Provider.of<DoctorProvider>(context);
+    final doctorProvider = Provider.of<DoctorListProvider>(context);
     final appointmentProvider = Provider.of<AppointmentProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 

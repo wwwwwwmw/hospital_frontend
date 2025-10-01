@@ -15,7 +15,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _user;
   AuthStatus _status = AuthStatus.uninitialized;
   bool _isLoading = false;
-  String? _errorMessage; // Bổ sung lại biến lưu lỗi
+  String? _errorMessage;
 
   // Getters
   String? get token => _token;
@@ -23,10 +23,12 @@ class AuthProvider with ChangeNotifier {
   AuthStatus get status => _status;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage; // Bổ sung lại getter cho lỗi
+  String? get errorMessage => _errorMessage;
 
+  // Getters kiểm tra vai trò
   bool get isAdmin => _user != null && (_user!['role'] == 'admin');
   bool get isStaff => _user != null && (_user!['role'] == 'staff');
+  bool get isDoctor => _user != null && (_user!['role'] == 'doctor'); // Bổ sung getter còn thiếu
 
   AuthProvider() {
     tryAutoLogin();
@@ -42,6 +44,7 @@ class AuthProvider with ChangeNotifier {
         try {
           _user = jsonDecode(storedUser);
         } catch (e) {
+          // Nếu dữ liệu user bị lỗi, đăng xuất để đảm bảo an toàn
           await logout();
           return;
         }
