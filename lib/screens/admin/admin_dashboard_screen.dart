@@ -39,11 +39,8 @@ class AdminDashboardScreen extends StatelessWidget {
             title: 'Quản lý Bệnh nhân',
             subtitle: 'Xem danh sách và thông tin bệnh nhân',
             onTap: () {
-              // TODO: Điều hướng đến trang quản lý bệnh nhân khi được tạo
-              // context.go('/admin/manage-patients');
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chức năng đang được phát triển')),
-              );
+              // SỬA Ở ĐÂY
+              context.go('/admin/manage-patients');
             },
           ),
           _buildDashboardCard(
@@ -52,10 +49,8 @@ class AdminDashboardScreen extends StatelessWidget {
             title: 'Quản lý Khoa',
             subtitle: 'Quản lý danh sách các khoa khám bệnh',
             onTap: () {
-              // TODO: Điều hướng đến trang quản lý khoa khi được tạo
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chức năng đang được phát triển')),
-              );
+              // SỬA Ở ĐÂY
+              context.go('/admin/manage-departments');
             },
           ),
            _buildDashboardCard(
@@ -64,10 +59,8 @@ class AdminDashboardScreen extends StatelessWidget {
             title: 'Quản lý Lịch hẹn',
             subtitle: 'Xem và quản lý tất cả lịch hẹn',
             onTap: () {
-              // TODO: Điều hướng đến trang quản lý lịch hẹn khi được tạo
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chức năng đang được phát triển')),
-              );
+              // SỬA Ở ĐÂY
+              context.go('/admin/manage-appointments');
             },
           ),
         ],
@@ -95,3 +88,4 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 }
+

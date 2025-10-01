@@ -19,7 +19,8 @@ class _ManagePatientsScreenState extends State<ManagePatientsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       if (token != null) {
-        Provider.of<AdminProvider>(context, listen: false).fetchAllPatients(token);
+        Provider.of<AdminProvider>(context, listen: false)
+            .fetchAllPatients(token: token); // Sửa ở đây
       }
     });
   }
@@ -44,7 +45,8 @@ class _ManagePatientsScreenState extends State<ManagePatientsScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               if (token != null) {
-                Provider.of<AdminProvider>(context, listen: false).fetchAllPatients(token);
+                Provider.of<AdminProvider>(context, listen: false)
+                    .fetchAllPatients(token: token); // Sửa ở đây
               }
             },
           ),
@@ -52,7 +54,7 @@ class _ManagePatientsScreenState extends State<ManagePatientsScreen> {
       ),
       body: Consumer<AdminProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading) {
+          if (provider.isLoading && provider.allPatients.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
           if (provider.errorMessage != null && provider.allPatients.isEmpty) {
@@ -62,45 +64,53 @@ class _ManagePatientsScreenState extends State<ManagePatientsScreen> {
             return const Center(child: Text('Không có bệnh nhân nào trong hệ thống.'));
           }
 
-          return ListView.builder(
-            itemCount: provider.allPatients.length,
-            itemBuilder: (context, index) {
-              final patient = provider.allPatients[index];
-              return Card(
-                child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-                  title: Text(patient.fullName),
-                  subtitle: Text(patient.phone),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        tooltip: 'Sửa',
-                        onPressed: () {
-                          // Logic to navigate to an edit patient screen
-                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Chức năng sửa bệnh nhân đang được phát triển')),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline, color: Colors.red[700]),
-                        tooltip: 'Xóa',
-                        onPressed: () => _deletePatient(patient),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              if (token != null) {
+                await Provider.of<AdminProvider>(context, listen: false)
+                    .fetchAllPatients(token: token); // Sửa ở đây
+              }
             },
+            child: ListView.builder(
+              itemCount: provider.allPatients.length,
+              itemBuilder: (context, index) {
+                final patient = provider.allPatients[index];
+                return Card(
+                  child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                    title: Text(patient.fullName),
+                    subtitle: Text(patient.phone),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: 'Sửa',
+                          onPressed: () {
+                            // Logic to navigate to an edit patient screen
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Chức năng sửa bệnh nhân đang được phát triển')),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline, color: Colors.red[700]),
+                          tooltip: 'Xóa',
+                          onPressed: () => _deletePatient(patient),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           );
         },
       ),
-       floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Logic to navigate to a create patient screen
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Chức năng thêm bệnh nhân đang được phát triển')),
           );
         },
@@ -110,3 +120,4 @@ class _ManagePatientsScreenState extends State<ManagePatientsScreen> {
     );
   }
 }
+

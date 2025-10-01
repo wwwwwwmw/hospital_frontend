@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/date_formatter.dart';
+import '../../models/appointment.dart';
 
 class MyAppointmentsScreen extends StatefulWidget {
   const MyAppointmentsScreen({super.key});
@@ -20,7 +21,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (authProvider.token != null) {
         Provider.of<AppointmentProvider>(context, listen: false)
-            .fetchMyAppointments(authProvider.token!);
+            // SỬA Ở ĐÂY: Dùng tham số được đặt tên
+            .fetchMyAppointments(token: authProvider.token!);
       }
     });
   }
@@ -43,7 +45,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             onPressed: () => Navigator.of(ctx).pop(false),
           ),
           TextButton(
-            child: const Text('Hủy lịch'),
+            child: const Text('Hủy lịch', style: TextStyle(color: Colors.red)),
             onPressed: () => Navigator.of(ctx).pop(true),
           ),
         ],
@@ -80,7 +82,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             onPressed: () {
               if (authProvider.token != null) {
                 Provider.of<AppointmentProvider>(context, listen: false)
-                    .fetchMyAppointments(authProvider.token!);
+                    // SỬA Ở ĐÂY: Dùng tham số được đặt tên
+                    .fetchMyAppointments(token: authProvider.token!);
               }
             },
           ),

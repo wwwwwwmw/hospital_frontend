@@ -5,8 +5,8 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Giao diện đơn giản chỉ hiển thị vòng xoay loading
-    // Logic kiểm tra và điều hướng sẽ được xử lý trong main.dart và router.dart
+    // Màn hình này chỉ hiển thị một vòng xoay loading ở giữa.
+    // Toàn bộ logic chuyển trang đã được xử lý trong GoRouter.
     return const Scaffold(
       body: Center(
         child: CircularProgressIndicator(),
@@ -14,3 +14,4 @@ class SplashScreen extends StatelessWidget {
     );
   }
 }
+

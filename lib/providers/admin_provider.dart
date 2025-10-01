@@ -1,54 +1,54 @@
+
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import '../models/doctor.dart';
 import '../models/patient.dart';
-import '../models/department.dart'; // Import model mới
+import '../models/appointment.dart';
+import '../models/department.dart';
 
 class AdminProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
-  // Trạng thái cho việc quản lý bác sĩ
+  // State variables
   List<Doctor> _allDoctors = [];
-  List<Doctor> get allDoctors => _allDoctors;
-
-  // Trạng thái cho việc quản lý bệnh nhân
   List<Patient> _allPatients = [];
-  List<Patient> get allPatients => _allPatients;
-  
-  // Trạng thái cho việc quản lý Khoa (Mới)
+  List<Appointment> _allAppointments = [];
   List<Department> _allDepartments = [];
-  List<Department> get allDepartments => _allDepartments;
 
   bool _isLoading = false;
-  bool get isLoading => _isLoading;
-
   String? _errorMessage;
+
+  // Getters
+  List<Doctor> get allDoctors => _allDoctors;
+  List<Patient> get allPatients => _allPatients;
+  List<Appointment> get allAppointments => _allAppointments;
+  List<Department> get allDepartments => _allDepartments;
+
+  bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
   // --- Doctor Management ---
-  Future<void> fetchAllDoctors(String token) async {
+  Future<void> fetchAllDoctors({required String token}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
-
     try {
       _allDoctors = await _apiService.adminGetAllDoctors(token: token);
     } catch (e) {
       _errorMessage = e.toString();
     }
-
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<bool> createDoctor(String token, Map<String, dynamic> doctorData) async {
+  Future<bool> createDoctor({required String token, required Map<String, dynamic> doctorData}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
-
     try {
       await _apiService.createDoctor(token: token, doctorData: doctorData);
-      await fetchAllDoctors(token);
+      await fetchAllDoctors(token: token); // Refresh list
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -59,15 +59,14 @@ class AdminProvider with ChangeNotifier {
   }
 
   Future<bool> updateDoctor(
-      String token, String doctorId, Map<String, dynamic> doctorData) async {
+      {required String token, required String doctorId, required Map<String, dynamic> doctorData}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
-
     try {
       await _apiService.updateDoctor(
           token: token, doctorId: doctorId, doctorData: doctorData);
-      await fetchAllDoctors(token);
+      await fetchAllDoctors(token: token); // Refresh list
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -77,7 +76,7 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> deleteDoctor(String token, String doctorId) async {
+  Future<bool> deleteDoctor({required String token, required String doctorId}) async {
     _errorMessage = null;
     try {
       await _apiService.deleteDoctor(token: token, doctorId: doctorId);
@@ -92,31 +91,114 @@ class AdminProvider with ChangeNotifier {
   }
 
   // --- Patient Management ---
-  Future<void> fetchAllPatients(String token) async {
+  Future<void> fetchAllPatients({required String token}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
-
     try {
       _allPatients = await _apiService.adminGetAllPatients(token: token);
     } catch (e) {
       _errorMessage = e.toString();
     }
-
     _isLoading = false;
     notifyListeners();
   }
 
-  // --- Department Management (Mới) ---
-  Future<void> fetchAllDepartments(String token) async {
-    // Không cần set isLoading vì thường tải cùng lúc với màn hình
+  // --- Appointment Management ---
+  Future<void> fetchAllAppointments({required String token}) async {
+    _isLoading = true;
     _errorMessage = null;
+    notifyListeners();
     try {
-      _allDepartments = await _apiService.adminGetAllDepartments(token: token);
-      notifyListeners();
+      _allAppointments = await _apiService.adminGetAllAppointments(token: token);
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> updateAppointmentStatus({required String token, required String appointmentId, required String status}) async {
+     try {
+      await _apiService.adminUpdateAppointmentStatus(token: token, appointmentId: appointmentId, status: status);
+      // Update status on the UI
+      final index = _allAppointments.indexWhere((app) => app.id == appointmentId);
+      if (index != -1) {
+        final oldAppointment = _allAppointments[index];
+        _allAppointments[index] = Appointment(
+          id: oldAppointment.id,
+          doctor: oldAppointment.doctor,
+          patient: oldAppointment.patient,
+          startTime: oldAppointment.startTime,
+          status: status, // New status
+        );
+        notifyListeners();
+      }
+      return true;
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
+      return false;
+    }
+  }
+
+  // --- Department Management ---
+  Future<void> fetchAllDepartments({required String token}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _allDepartments = await _apiService.adminGetAllDepartments(token: token);
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> createDepartment({required String token, required Map<String, dynamic> departmentData}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _apiService.createDepartment(token: token, departmentData: departmentData);
+      await fetchAllDepartments(token: token); // Refresh list
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateDepartment({required String token, required String departmentId, required Map<String, dynamic> departmentData}) async {
+     _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _apiService.updateDepartment(token: token, departmentId: departmentId, departmentData: departmentData);
+      await fetchAllDepartments(token: token); // Refresh list
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteDepartment({required String token, required String departmentId}) async {
+     _errorMessage = null;
+    try {
+      await _apiService.deleteDepartment(token: token, departmentId: departmentId);
+      _allDepartments.removeWhere((dept) => dept.id == departmentId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+       _errorMessage = e.toString();
+       notifyListeners();
+      return false;
     }
   }
 }

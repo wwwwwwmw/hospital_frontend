@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../screens/splash_screen.dart';
@@ -24,7 +25,7 @@ class AppRouter {
 
   late final GoRouter router = GoRouter(
     refreshListenable: authProvider,
-    initialLocation: '/splash', // Bắt đầu với màn hình splash
+    initialLocation: '/splash',
     routes: [
       GoRoute(
         path: '/splash',
@@ -38,8 +39,6 @@ class AppRouter {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
-
-      // --- Main App Routes (Protected) ---
       GoRoute(
         path: '/',
         builder: (context, state) => const HomeScreen(),
@@ -78,8 +77,6 @@ class AppRouter {
             path: 'change-password',
             builder: (context, state) => const ChangePasswordScreen(),
           ),
-          
-          // --- Admin Routes (Protected by Role) ---
           GoRoute(
             path: 'admin',
             builder: (context, state) => const AdminDashboardScreen(),
@@ -92,7 +89,6 @@ class AppRouter {
                 path: 'edit-doctor/:doctorId',
                  builder: (context, state) {
                   final doctorId = state.pathParameters['doctorId']!;
-                  // Thêm logic để xử lý tạo mới (khi doctorId là 'new')
                   return EditDoctorScreen(doctorId: doctorId);
                 },
               )
@@ -102,32 +98,39 @@ class AppRouter {
       ),
     ],
     redirect: (BuildContext context, GoRouterState state) {
-      final bool loggedIn = authProvider.isAuthenticated;
+      final authStatus = authProvider.status;
       final bool isAdminOrStaff = authProvider.isAdmin || authProvider.isStaff;
       
-      final bool isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-      final bool isGoingToSplash = state.matchedLocation == '/splash';
-      final bool isGoingToAdmin = state.matchedLocation.startsWith('/admin');
+      final String location = state.matchedLocation;
+      final bool isLoggingIn = location == '/login' || location == '/register';
+      final bool isGoingToSplash = location == '/splash';
+      final bool isGoingToAdmin = location.startsWith('/admin');
 
-      // Nếu đang ở màn hình splash, không làm gì cả
-      if(isGoingToSplash) return null;
-
-      // Nếu chưa đăng nhập và không ở trang login/register, chuyển hướng về login
-      if (!loggedIn && !isLoggingIn) {
-        return '/login';
+      if (authStatus == AuthStatus.uninitialized) {
+        return isGoingToSplash ? null : '/splash';
       }
 
-      // Nếu đã đăng nhập và đang ở trang login/register, chuyển hướng về trang chủ
-      if (loggedIn && isLoggingIn) {
-        return '/';
+      if (authStatus == AuthStatus.unauthenticated) {
+        return isLoggingIn ? null : '/login';
       }
 
-      // Nếu đang cố vào trang admin mà không có quyền, chuyển về trang chủ
-      if (loggedIn && isGoingToAdmin && !isAdminOrStaff) {
-        return '/'; // Hoặc có thể hiển thị trang "Không có quyền truy cập"
+      if (authStatus == AuthStatus.authenticated) {
+        // --- SỬA LOGIC Ở ĐÂY ---
+        // Nếu đã đăng nhập và đang ở trang login/register/splash,
+        // hãy kiểm tra vai trò để quyết định trang đích.
+        if (isLoggingIn || isGoingToSplash) {
+          if (isAdminOrStaff) {
+            return '/admin'; // Chuyển admin/staff đến trang dashboard
+          }
+          return '/'; // Chuyển người dùng thông thường đến trang chủ
+        }
+        // -------------------------
+
+        if (isGoingToAdmin && !isAdminOrStaff) {
+          return '/';
+        }
       }
       
-      // Mặc định không chuyển hướng
       return null;
     },
   );

@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:convert'; // Import for jsonEncode
+import 'dart:convert';
 import '../services/api_service.dart';
+
+// Enum để định nghĩa các trạng thái xác thực
+enum AuthStatus { uninitialized, authenticated, unauthenticated }
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -9,79 +13,105 @@ class AuthProvider with ChangeNotifier {
 
   String? _token;
   Map<String, dynamic>? _user;
+  AuthStatus _status = AuthStatus.uninitialized;
   bool _isLoading = false;
-  String? _errorMessage;
+  String? _errorMessage; // Bổ sung lại biến lưu lỗi
 
+  // Getters
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
-  bool get isAuthenticated => _token != null;
+  AuthStatus get status => _status;
+  bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  String? get errorMessage => _errorMessage; // Bổ sung lại getter cho lỗi
 
   bool get isAdmin => _user != null && (_user!['role'] == 'admin');
   bool get isStaff => _user != null && (_user!['role'] == 'staff');
 
-  Future<void> login(String email, String password) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final authResponse =
-          await _apiService.login(email: email, password: password);
-      _token = authResponse.token;
-      _user = authResponse.user;
-      
-      await _storage.write(key: 'authToken', value: _token);
-      await _storage.write(key: 'user', value: jsonEncode(_user));
-
-    } catch (e) {
-      _errorMessage = e.toString();
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> register(String fullName, String email, String password) async {
-     _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-     try {
-       final authResponse = await _apiService.register(fullName: fullName, email: email, password: password);
-       _token = authResponse.token;
-       _user = authResponse.user;
-       await _storage.write(key: 'authToken', value: _token);
-       await _storage.write(key: 'user', value: jsonEncode(_user));
-
-     } catch (e) {
-       _errorMessage = e.toString();
-     }
-      _isLoading = false;
-      notifyListeners();
+  AuthProvider() {
+    tryAutoLogin();
   }
 
   Future<void> tryAutoLogin() async {
     final storedToken = await _storage.read(key: 'authToken');
     final storedUser = await _storage.read(key: 'user');
+
     if (storedToken != null) {
       _token = storedToken;
       if (storedUser != null) {
-        _user = jsonDecode(storedUser);
+        try {
+          _user = jsonDecode(storedUser);
+        } catch (e) {
+          await logout();
+          return;
+        }
       }
-      notifyListeners();
+      _status = AuthStatus.authenticated;
+    } else {
+      _status = AuthStatus.unauthenticated;
     }
+    notifyListeners();
+  }
+
+  Future<bool> login(String email, String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final authResponse = await _apiService.login(email: email, password: password);
+      _token = authResponse.token;
+      _user = authResponse.user;
+      
+      await _storage.write(key: 'authToken', value: _token);
+      await _storage.write(key: 'user', value: jsonEncode(_user));
+      
+      _status = AuthStatus.authenticated;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _status = AuthStatus.unauthenticated;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> register(String fullName, String email, String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+       final authResponse = await _apiService.register(fullName: fullName, email: email, password: password);
+       _token = authResponse.token;
+       _user = authResponse.user;
+       await _storage.write(key: 'authToken', value: _token);
+       await _storage.write(key: 'user', value: jsonEncode(_user));
+       _status = AuthStatus.authenticated;
+       _isLoading = false;
+       notifyListeners();
+       return true;
+     } catch (e) {
+       _errorMessage = e.toString();
+       _status = AuthStatus.unauthenticated;
+       _isLoading = false;
+       notifyListeners();
+       return false;
+     }
   }
 
   Future<void> logout() async {
     _token = null;
     _user = null;
+    _status = AuthStatus.unauthenticated;
     await _storage.deleteAll();
     notifyListeners();
   }
-
-  // SỬA Ở ĐÂY: Thêm 'required' để định nghĩa tham số được đặt tên
-   Future<bool> changePassword({required String oldPassword, required String newPassword}) async {
+  
+  Future<bool> changePassword({required String oldPassword, required String newPassword}) async {
     if (_token == null) {
       _errorMessage = "Bạn chưa đăng nhập.";
       return false;

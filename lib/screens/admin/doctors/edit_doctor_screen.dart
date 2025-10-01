@@ -36,22 +36,20 @@ class _EditDoctorScreenState extends State<EditDoctorScreen> {
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
 
     if (_isEditing) {
-      // Sửa lỗi firstWhere bằng cách sử dụng try-catch để xử lý trường hợp không tìm thấy
       try {
         final initialDoctorData = adminProvider.allDoctors
             .firstWhere((doc) => doc.id == widget.doctorId);
         
-        // Điền dữ liệu vào form
         _fullNameController.text = initialDoctorData.fullName;
         _emailController.text = initialDoctorData.email;
         _phoneController.text = initialDoctorData.phone ?? '';
         _isActive = initialDoctorData.isActive;
         _selectedDepartmentId = initialDoctorData.department.id;
       } catch (e) {
-        // Nếu không tìm thấy bác sĩ trong provider, có thể quay lại hoặc hiển thị thông báo
         print("Không tìm thấy bác sĩ với ID: ${widget.doctorId} để chỉnh sửa.");
-        // Cân nhắc tự động pop() nếu cần
-        // WidgetsBinding.instance.addPostFrameCallback((_) => context.pop());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.pop();
+        });
       }
     }
     
@@ -59,7 +57,7 @@ class _EditDoctorScreenState extends State<EditDoctorScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       if (token != null) {
-         adminProvider.fetchAllDepartments(token);
+         adminProvider.fetchAllDepartments(token: token);
       }
     });
   }
@@ -89,11 +87,19 @@ class _EditDoctorScreenState extends State<EditDoctorScreen> {
     };
 
     bool success = false;
+    if (authProvider.token == null) return;
+
     if (_isEditing) {
       success = await adminProvider.updateDoctor(
-          authProvider.token!, widget.doctorId, doctorData);
+          token: authProvider.token!, 
+          doctorId: widget.doctorId, 
+          doctorData: doctorData
+      );
     } else {
-      success = await adminProvider.createDoctor(authProvider.token!, doctorData);
+      success = await adminProvider.createDoctor(
+          token: authProvider.token!, 
+          doctorData: doctorData
+      );
     }
 
     if (mounted) {
@@ -108,7 +114,7 @@ class _EditDoctorScreenState extends State<EditDoctorScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${adminProvider.errorMessage}'),
+            content: Text('Lỗi: ${adminProvider.errorMessage ?? "Thao tác thất bại"}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -147,12 +153,13 @@ class _EditDoctorScreenState extends State<EditDoctorScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Dropdown để chọn Khoa
             Consumer<AdminProvider>(
               builder: (context, provider, child) {
-                // Hiển thị loading nếu danh sách khoa đang rỗng
                 if (provider.allDepartments.isEmpty && provider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
                 }
                 return DropdownButtonFormField<String>(
                   value: _selectedDepartmentId,

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -17,16 +16,15 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
   @override
   void initState() {
     super.initState();
-    // Tải danh sách bác sĩ ngay khi màn hình được tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       if (token != null) {
-        Provider.of<AdminProvider>(context, listen: false).fetchAllDoctors(token);
+        Provider.of<AdminProvider>(context, listen: false)
+            .fetchAllDoctors(token: token); // Sửa ở đây
       }
     });
   }
 
-  // Hàm xử lý xóa bác sĩ
   Future<void> _deleteDoctor(Doctor doctor) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
@@ -50,7 +48,8 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
     );
 
     if (confirm == true && authProvider.token != null) {
-      final success = await adminProvider.deleteDoctor(authProvider.token!, doctor.id);
+      final success = await adminProvider.deleteDoctor(
+          token: authProvider.token!, doctorId: doctor.id); // Sửa ở đây
       if (mounted && !success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -74,7 +73,8 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               if (token != null) {
-                Provider.of<AdminProvider>(context, listen: false).fetchAllDoctors(token);
+                Provider.of<AdminProvider>(context, listen: false)
+                    .fetchAllDoctors(token: token); // Sửa ở đây
               }
             },
           ),
@@ -82,7 +82,7 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
       ),
       body: Consumer<AdminProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading) {
+          if (provider.isLoading && provider.allDoctors.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
           if (provider.errorMessage != null && provider.allDoctors.isEmpty) {
@@ -103,12 +103,6 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Switch(
-                        value: doctor.isActive,
-                        onChanged: (value) {
-                          // TODO: Implement logic to update isActive status
-                        },
-                      ),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined),
                         onPressed: () {
@@ -129,7 +123,6 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 'new' là một ID đặc biệt để màn hình edit biết đây là tạo mới
           context.go('/admin/edit-doctor/new');
         },
         child: const Icon(Icons.add),
@@ -138,3 +131,4 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
     );
   }
 }
+
