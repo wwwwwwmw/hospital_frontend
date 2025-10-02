@@ -22,7 +22,7 @@ import '../screens/user_flow/edit_patient_profile_screen.dart';
 // Doctor Panel Screens
 import '../screens/doctor_panel/doctor_dashboard_screen.dart';
 import '../screens/doctor_panel/doctor_appointments_screen.dart';
-import '../screens/doctor_panel/register_schedule_screen.dart'; // Import màn hình mới
+import '../screens/doctor_panel/register_schedule_screen.dart'; 
 
 // Admin Screens
 import '../screens/admin/admin_dashboard_screen.dart';
@@ -30,7 +30,7 @@ import '../screens/admin/doctors/manage_doctors_screen.dart';
 import '../screens/admin/doctors/edit_doctor_screen.dart';
 import '../screens/admin/users/manage_users_screen.dart';
 import '../screens/admin/users/user_detail_screen.dart';
-
+import '../screens/admin/manage_schedules_screen.dart'; // <<< THÊM IMPORT MỚI
 
 class AppRouter {
   final AuthProvider authProvider;
@@ -63,7 +63,6 @@ class AppRouter {
             path: 'appointments',
             builder: (context, state) => const DoctorAppointmentsScreen(),
           ),
-          // BỔ SUNG ROUTE MỚI
           GoRoute(
             path: 'register-schedule',
             builder: (context, state) => const RegisterScheduleScreen(),
@@ -108,7 +107,7 @@ class AppRouter {
             builder: (context, state) => const ChangePasswordScreen(),
           ),
 
-          // Admin Routes (Simplified)
+          // Admin Routes
           GoRoute(
             path: 'admin',
             builder: (context, state) => const AdminDashboardScreen(),
@@ -134,6 +133,11 @@ class AppRouter {
                         userId: state.pathParameters['userId']!),
                   ),
                 ],
+              ),
+              // === THÊM ROUTE MỚI TẠI ĐÂY ===
+              GoRoute(
+                path: 'manage-schedules',
+                builder: (context, state) => const ManageSchedulesScreen(),
               ),
             ],
           ),
@@ -180,4 +184,3 @@ class AppRouter {
     },
   );
 }
-

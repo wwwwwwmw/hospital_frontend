@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/doctor_panel_provider.dart';
 import '../../providers/auth_provider.dart';
 
-// --- LỚP HELPER MỚI ĐỂ QUẢN LÝ CA LÀM VIỆC ---
+// --- LỚP HELPER ĐỂ QUẢN LÝ CA LÀM VIỆC ---
 class WorkShift {
   final String name;
   final String startTime; // "HH:mm"
@@ -21,7 +21,7 @@ class WorkShift {
 
 class DaySchedule {
   final String dayName; // Tên hiển thị (e.g., "Thứ Hai")
-  final String dayValue; // Giá trị gửi đi (e.g., "Monday")
+  final String dayValue; // Giá trị để mapping (e.g., "Monday")
   final List<WorkShift> shifts;
 
   DaySchedule({
@@ -67,35 +67,64 @@ class _RegisterScheduleScreenState extends State<RegisterScheduleScreen> {
     ];
   }
 
+  // HÀM HELPER: Chuyển đổi giá trị ngày (String) sang số (int) mà backend yêu cầu
+  // Theo chuẩn JavaScript: 0 = Chủ Nhật, 1 = Thứ Hai, ..., 6 = Thứ Bảy
+  int _dayValueToWeekday(String dayValue) {
+    switch (dayValue) {
+      case 'Sunday': return 0;
+      case 'Monday': return 1;
+      case 'Tuesday': return 2;
+      case 'Wednesday': return 3;
+      case 'Thursday': return 4;
+      case 'Friday': return 5;
+      case 'Saturday': return 6;
+      default: return -1; // Giá trị không hợp lệ
+    }
+  }
+
+  // === HÀM QUAN TRỌNG NHẤT: ĐÃ ĐƯỢC CẬP NHẬT LOGIC HOÀN TOÀN ===
   Future<void> _submitSchedules() async {
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     if (token == null) return;
     
     final provider = Provider.of<DoctorPanelProvider>(context, listen: false);
 
-    // Lọc ra tất cả các ca làm việc đã được chọn
-    final List<Map<String, dynamic>> selectedSchedules = [];
+    // 1. Nhóm các ca đã chọn theo ngày (weekday) và chuyển đổi dữ liệu
+    final Map<int, List<Map<String, dynamic>>> groupedSchedules = {};
+
     for (var daySchedule in _schedules) {
-      for (var shift in daySchedule.shifts) {
-        if (shift.isSelected) {
-          selectedSchedules.add({
-            'dayOfWeek': daySchedule.dayValue,
-            'startTime': shift.startTime,
-            'endTime': shift.endTime,
-            'slotDuration': 30, // Giá trị mặc định, có thể thay đổi
-          });
+      // Lọc ra các ca được chọn cho ngày hiện tại
+      final selectedShifts = daySchedule.shifts.where((s) => s.isSelected).toList();
+
+      // Nếu có ca được chọn trong ngày này
+      if (selectedShifts.isNotEmpty) {
+        final weekday = _dayValueToWeekday(daySchedule.dayValue);
+        if (weekday != -1) {
+          // 2. Chuyển đổi danh sách ca làm việc sang định dạng mà backend yêu cầu
+          groupedSchedules[weekday] = selectedShifts.map((shift) {
+            return {
+              'start': shift.startTime,     // Đổi tên key: 'startTime' -> 'start'
+              'end': shift.endTime,         // Đổi tên key: 'endTime' -> 'end'
+              'slotDurationMin': 30,        // Đổi tên key và đặt giá trị
+              'capacityPerSlot': 1,         // Thêm key còn thiếu
+            };
+          }).toList();
         }
       }
     }
 
-    if (selectedSchedules.isEmpty) {
+    if (groupedSchedules.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng chọn ít nhất một ca làm việc.')),
       );
       return;
     }
 
-    final success = await provider.registerSchedule(token: token, schedules: selectedSchedules);
+    // 3. Gọi hàm mới trong provider với dữ liệu đã được nhóm và định dạng lại
+    final success = await provider.registerSchedulesForWeek(
+      token: token, 
+      groupedSchedules: groupedSchedules
+    );
 
     if (mounted) {
       if (success) {
@@ -124,8 +153,9 @@ class _RegisterScheduleScreenState extends State<RegisterScheduleScreen> {
           final daySchedule = _schedules[index];
           // Sử dụng ExpansionTile để giao diện gọn gàng hơn
           return Card(
+            margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             child: ExpansionTile(
-              title: Text(daySchedule.dayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(daySchedule.dayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               children: daySchedule.shifts.map((shift) {
                 return CheckboxListTile(
                   title: Text(shift.name),
@@ -158,4 +188,3 @@ class _RegisterScheduleScreenState extends State<RegisterScheduleScreen> {
     );
   }
 }
-

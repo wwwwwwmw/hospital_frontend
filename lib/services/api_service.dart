@@ -5,8 +5,8 @@ import '../models/time_slot.dart';
 import '../models/patient.dart';
 import '../models/department.dart';
 import '../models/user.dart';
+import '../models/doctor_schedule.dart'; // <<< THÊM IMPORT MỚI
 
-// ... (AuthResponse class and _handleDioError function remain the same)
 class AuthResponse {
   final String token;
   final Map<String, dynamic> user;
@@ -21,14 +21,15 @@ class AuthResponse {
   }
 }
 
-
 class ApiService {
+  // LƯU Ý QUAN TRỌNG:
+  // Thay 'localhost' bằng IP của máy tính của bạn khi chạy trên điện thoại thật
+  // Ví dụ: 'http://192.168.1.10:5000/api'
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'http://localhost:5000/api',
   ));
 
   String _handleDioError(DioException e) {
-    // ... (existing error handling code)
     print('--- Dio Error Occurred ---');
     print('Error Type: ${e.type}');
     if (e.response != null) {
@@ -53,7 +54,6 @@ class ApiService {
   }
 
   // --- Auth, Patient Profile APIs ---
-  // ... (All existing functions in this section remain the same)
   Future<AuthResponse> register({
     required String fullName,
     required String email,
@@ -104,6 +104,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+  
   Future<Patient> getMyPatientProfile({required String token}) async {
     try {
       final response = await _dio.get(
@@ -130,7 +131,6 @@ class ApiService {
   }
 
   // --- Public/User Doctor and Department APIs ---
-  // ... (All existing functions in this section remain the same)
   Future<List<Doctor>> getDoctors() async {
     try {
       final response = await _dio.get('/doctors');
@@ -161,7 +161,6 @@ class ApiService {
   }
 
   // --- Appointment APIs ---
-  // ... (createAppointment and getSlotsByDoctorAndDate remain the same)
   Future<List<TimeSlot>> getSlotsByDoctorAndDate(String doctorId, String date) async {
     try {
       final response = await _dio.get('/doctors/$doctorId/slots', queryParameters: {'date': date});
@@ -190,7 +189,6 @@ class ApiService {
     }
   }
 
-  // SỬA Ở ĐÂY: Sửa endpoint từ /me thành /my
   Future<List<Appointment>> getMyAppointments({required String token}) async {
     try {
       final response = await _dio.get(
@@ -203,7 +201,6 @@ class ApiService {
     }
   }
 
-  // SỬA Ở ĐÂY: Sửa phương thức từ DELETE thành POST và endpoint
   Future<void> cancelAppointment({required String token, required String appointmentId}) async {
     try {
       await _dio.post(
@@ -215,13 +212,11 @@ class ApiService {
     }
   }
 
-  // --- Doctor APIs ---
-  // LƯU Ý: HÀM NÀY SẼ GÂY LỖI FORBIDDEN. BẠN CẦN LÀM VIỆC VỚI BACKEND ĐỂ TẠO API MỚI.
+  // --- Doctor Panel APIs ---
   Future<List<Appointment>> getMyAppointmentsForDoctor({required String token}) async {
     try {
-      // Backend của bạn hiện không có API này. Đây là API mà đáng lẽ phải có:
       final response = await _dio.get(
-        '/appointments/doctor/me', // Endpoint này chưa tồn tại
+        '/appointments/doctor/me',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       return (response.data as List).map((json) => Appointment.fromJson(json)).toList();
@@ -230,20 +225,24 @@ class ApiService {
     }
   }
   
-  // ... (All other functions remain the same)
-  Future<void> registerDoctorSchedule({required String token, required List<Map<String, dynamic>> schedules}) async {
+  Future<void> upsertWeeklySchedule({
+    required String token,
+    required Map<String, dynamic> scheduleData,
+  }) async {
     try {
       await _dio.post(
-        '/schedules',
-        data: {'schedules': schedules},
+        '/schedules/weekly',
+        data: scheduleData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
   }
+
+  // --- Admin APIs ---
   Future<List<Doctor>> adminGetAllDoctors({required String token}) async {
-     try {
+    try {
       final response = await _dio.get(
         '/doctors',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
@@ -253,6 +252,25 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
+  Future<List<DoctorSchedule>> adminGetWeeklyScheduleForDoctor({
+    required String token,
+    required String doctorId,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/schedules/weekly',
+        queryParameters: {'doctor': doctorId},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return (response.data as List)
+          .map((json) => DoctorSchedule.fromJson(json))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
   Future<void> createDoctor({required String token, required Map<String, dynamic> doctorData}) async {
     try {
       await _dio.post(
@@ -264,6 +282,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> updateDoctor({required String token, required String doctorId, required Map<String, dynamic> doctorData}) async {
     try {
       await _dio.patch(
@@ -275,6 +294,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> deleteDoctor({required String token, required String doctorId}) async {
     try {
       await _dio.delete(
@@ -285,6 +305,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<List<Department>> adminGetAllDepartments({required String token}) async {
     try {
       final response = await _dio.get(
@@ -296,6 +317,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> createDepartment({required String token, required Map<String, dynamic> departmentData}) async {
     try {
       await _dio.post(
@@ -307,6 +329,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> updateDepartment({required String token, required String departmentId, required Map<String, dynamic> departmentData}) async {
     try {
       await _dio.patch(
@@ -318,6 +341,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> deleteDepartment({required String token, required String departmentId}) async {
     try {
       await _dio.delete(
@@ -328,6 +352,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<List<Appointment>> adminGetAllAppointments({required String token}) async {
     try {
       final response = await _dio.get(
@@ -339,6 +364,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> adminUpdateAppointmentStatus({required String token, required String appointmentId, required String status}) async {
      try {
       await _dio.patch(
@@ -350,6 +376,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<List<Patient>> adminGetAllPatients({required String token}) async {
     try {
       final response = await _dio.get(
@@ -361,6 +388,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> adminCreatePatient({required String token, required Map<String, dynamic> patientData}) async {
     try {
       await _dio.post(
@@ -372,6 +400,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> adminUpdatePatient({required String token, required String patientId, required Map<String, dynamic> patientData}) async {
     try {
       await _dio.patch(
@@ -383,6 +412,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> adminDeletePatient({required String token, required String patientId}) async {
     try {
       await _dio.delete(
@@ -393,6 +423,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<List<User>> adminGetAllUsers({required String token}) async {
     try {
       final response = await _dio.get(
@@ -404,6 +435,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> adminUpdateUser({required String token, required String userId, required Map<String, dynamic> userData}) async {
     try {
       await _dio.patch(
@@ -415,6 +447,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<void> adminDeleteUser({required String token, required String userId}) async {
     try {
       await _dio.delete(
@@ -425,6 +458,7 @@ class ApiService {
       throw Exception(_handleDioError(e));
     }
   }
+
   Future<List<Patient>> adminGetPatientsForUser({required String token, required String userId}) async {
     try {
       final response = await _dio.get(
@@ -437,4 +471,3 @@ class ApiService {
     }
   }
 }
-

@@ -28,22 +28,45 @@ class DoctorPanelProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// BỔ SUNG HÀM CÒN THIẾU: Đăng ký lịch làm việc mới
-  Future<bool> registerSchedule({required String token, required List<Map<String, dynamic>> schedules}) async {
+  /// Đăng ký lịch làm việc cho cả tuần.
+  /// Hàm này sẽ lặp qua các ngày có lịch và gọi API cho từng ngày.
+  Future<bool> registerSchedulesForWeek({
+    required String token,
+    required Map<int, List<Map<String, dynamic>>> groupedSchedules, // Nhận vào dữ liệu đã được nhóm theo ngày
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
     try {
-      await _apiService.registerDoctorSchedule(token: token, schedules: schedules);
+      // Lặp qua từng entry trong map (key: weekday, value: list of blocks)
+      for (var entry in groupedSchedules.entries) {
+        final weekday = entry.key;
+        final blocks = entry.value;
+
+        // Tạo payload cho API request của một ngày
+        final scheduleDataForOneDay = {
+          'weekday': weekday,
+          'blocks': blocks,
+          // Lưu ý: doctorId sẽ được backend tự lấy từ token, không cần gửi lên
+        };
+
+        // Gọi API để cập nhật lịch cho ngày hiện tại trong vòng lặp
+        // Giả sử trong ApiService bạn đã có hàm upsertWeeklySchedule
+        await _apiService.upsertWeeklySchedule(
+          token: token, 
+          scheduleData: scheduleDataForOneDay
+        );
+      }
+
       _isLoading = false;
       notifyListeners();
-      return true;
+      return true; // Trả về true nếu tất cả các request thành công
     } catch (e) {
       _errorMessage = e.toString();
-       _isLoading = false;
+      _isLoading = false;
       notifyListeners();
-      return false;
+      return false; // Trả về false nếu có bất kỳ request nào thất bại
     }
   }
 }
-

@@ -5,6 +5,7 @@ import '../models/patient.dart';
 import '../models/appointment.dart';
 import '../models/department.dart';
 import '../models/user.dart';
+import '../models/doctor_schedule.dart'; // <<< THÊM IMPORT MỚI
 
 class AdminProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -15,6 +16,10 @@ class AdminProvider with ChangeNotifier {
   List<Appointment> _allAppointments = [];
   List<Department> _allDepartments = [];
   List<User> _allUsers = [];
+  List<Patient> _patientsForSelectedUser = [];
+
+  // === STATE MỚI CHO QUẢN LÝ LỊCH ===
+  List<DoctorSchedule> _selectedDoctorSchedule = [];
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -25,7 +30,11 @@ class AdminProvider with ChangeNotifier {
   List<Appointment> get allAppointments => _allAppointments;
   List<Department> get allDepartments => _allDepartments;
   List<User> get allUsers => _allUsers;
-
+  List<Patient> get patientsForSelectedUser => _patientsForSelectedUser;
+  
+  // === GETTER MỚI ===
+  List<DoctorSchedule> get selectedDoctorSchedule => _selectedDoctorSchedule;
+  
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -90,6 +99,68 @@ class AdminProvider with ChangeNotifier {
       return true;
     } catch (e) {
       _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // === CÁC HÀM MỚI CHO QUẢN LÝ LỊCH ===
+  
+  Future<void> fetchWeeklyScheduleForDoctor({
+    required String token,
+    required String doctorId,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _selectedDoctorSchedule = []; // Xóa dữ liệu cũ khi chọn bác sĩ mới
+    notifyListeners();
+    try {
+      _selectedDoctorSchedule = await _apiService.adminGetWeeklyScheduleForDoctor(
+        token: token,
+        doctorId: doctorId,
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> updateWeeklyScheduleForDoctor({
+    required String token,
+    required String doctorId,
+    required Map<int, List<Map<String, dynamic>>> groupedSchedules,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Gửi request cho từng ngày trong tuần
+      for (var entry in groupedSchedules.entries) {
+        final weekday = entry.key;
+        final blocks = entry.value;
+
+        final scheduleData = {
+          'doctor': doctorId, // Admin gửi doctorId trong body
+          'weekday': weekday,
+          'blocks': blocks,
+          'isActive': blocks.isNotEmpty,
+        };
+
+        await _apiService.upsertWeeklySchedule(
+          token: token,
+          scheduleData: scheduleData,
+        );
+      }
+      
+      // Tải lại lịch sau khi cập nhật thành công
+      await fetchWeeklyScheduleForDoctor(token: token, doctorId: doctorId);
+      
+      return true; // Trả về true ngay, không cần set isLoading nữa vì fetch đã làm
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
       notifyListeners();
       return false;
     }
@@ -218,9 +289,6 @@ class AdminProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-   List<Patient> _patientsForSelectedUser = [];
-   List<Patient> get patientsForSelectedUser => _patientsForSelectedUser;
-
 
   // --- Appointment Management ---
   Future<void> fetchAllAppointments({required String token}) async {
@@ -324,4 +392,3 @@ class AdminProvider with ChangeNotifier {
     }
   }
 }
-

@@ -42,6 +42,15 @@ class AdminDashboardScreen extends StatelessWidget {
               context.go('/admin/manage-users');
             },
           ),
+          _buildDashboardCard(
+            context,
+            icon: Icons.calendar_month_outlined,
+            title: 'Quản lý Lịch làm việc',
+            subtitle: 'Chỉnh sửa lịch làm việc hàng tuần cho bác sĩ',
+            onTap: () {
+              context.go('/admin/manage-schedules');
+            },
+          ),
         ],
       ),
     );
@@ -57,6 +66,7 @@ class AdminDashboardScreen extends StatelessWidget {
   }) {
     return Card(
       elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
         leading: Icon(icon, size: 40, color: Theme.of(context).primaryColor),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -67,4 +77,3 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 }
-
