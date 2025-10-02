@@ -4,33 +4,30 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 
-// Core Screens
+// Import tất cả các màn hình của bạn ở đây
 import '../screens/splash_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/change_password_screen.dart';
-
-// User Flow Screens
 import '../screens/user_flow/home_screen.dart';
 import '../screens/user_flow/doctor_list_screen.dart';
 import '../screens/user_flow/doctor_detail_screen.dart';
 import '../screens/user_flow/appointment_booking_screen.dart';
 import '../screens/user_flow/my_appointments_screen.dart';
 import '../screens/user_flow/profile_screen.dart';
-import '../screens/user_flow/edit_patient_profile_screen.dart';
-
-// Doctor Panel Screens
+import '../screens/user_flow/edit_profile_screen.dart';
+import '../screens/user_flow/manage_patients_screen.dart';
+import '../screens/user_flow/edit_patient_screen.dart';
 import '../screens/doctor_panel/doctor_dashboard_screen.dart';
 import '../screens/doctor_panel/doctor_appointments_screen.dart';
-import '../screens/doctor_panel/register_schedule_screen.dart'; 
 
-// Admin Screens
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/doctors/manage_doctors_screen.dart';
 import '../screens/admin/doctors/edit_doctor_screen.dart';
 import '../screens/admin/users/manage_users_screen.dart';
 import '../screens/admin/users/user_detail_screen.dart';
-import '../screens/admin/manage_schedules_screen.dart'; // <<< THÊM IMPORT MỚI
+import '../screens/admin/manage_schedules_screen.dart';
+
 
 class AppRouter {
   final AuthProvider authProvider;
@@ -53,8 +50,6 @@ class AppRouter {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
-
-      // --- Doctor Panel Route ---
       GoRoute(
         path: '/doctor',
         builder: (context, state) => const DoctorDashboardScreen(),
@@ -63,19 +58,13 @@ class AppRouter {
             path: 'appointments',
             builder: (context, state) => const DoctorAppointmentsScreen(),
           ),
-          GoRoute(
-            path: 'register-schedule',
-            builder: (context, state) => const RegisterScheduleScreen(),
-          ),
+          
         ],
       ),
-
-      // --- User & Admin Routes (nested under root) ---
       GoRoute(
         path: '/',
         builder: (context, state) => const HomeScreen(),
         routes: [
-          // User Routes
           GoRoute(
             path: 'doctors',
             builder: (context, state) => const DoctorListScreen(),
@@ -100,14 +89,24 @@ class AppRouter {
           ),
           GoRoute(
             path: 'edit-profile',
-            builder: (context, state) => const EditPatientProfileScreen(),
+            builder: (context, state) => const EditProfileScreen(),
+          ),
+           GoRoute(
+            path: 'manage-patients',
+            builder: (context, state) => const ManagePatientsScreen(),
+            routes: [
+              GoRoute(
+                path: 'edit/:patientId',
+                builder: (context, state) => EditPatientScreen(
+                  patientId: state.pathParameters['patientId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: 'change-password',
             builder: (context, state) => const ChangePasswordScreen(),
           ),
-
-          // Admin Routes
           GoRoute(
             path: 'admin',
             builder: (context, state) => const AdminDashboardScreen(),
@@ -134,7 +133,6 @@ class AppRouter {
                   ),
                 ],
               ),
-              // === THÊM ROUTE MỚI TẠI ĐÂY ===
               GoRoute(
                 path: 'manage-schedules',
                 builder: (context, state) => const ManageSchedulesScreen(),
@@ -146,40 +144,41 @@ class AppRouter {
     ],
     redirect: (BuildContext context, GoRouterState state) {
       final authStatus = authProvider.status;
-      final bool isDoctor = authProvider.isDoctor;
-      final bool isAdminOrStaff = authProvider.isAdmin || authProvider.isStaff;
-
-      final String location = state.matchedLocation;
-      final bool isLoggingIn =
-          location == '/login' || location == '/register';
-      final bool isGoingToSplash = location == '/splash';
-      final bool isGoingToAdmin = location.startsWith('/admin');
-      final bool isGoingToDoctor = location.startsWith('/doctor');
+      final userRole = authProvider.user?['role'];
+      final location = state.matchedLocation;
 
       if (authStatus == AuthStatus.uninitialized) {
-        return isGoingToSplash ? null : '/splash';
+        return location == '/splash' ? null : '/splash';
       }
 
+      final isAtAuthScreen = location == '/login' || location == '/register';
+
       if (authStatus == AuthStatus.unauthenticated) {
-        return isLoggingIn ? null : '/login';
+        return isAtAuthScreen ? null : '/login';
       }
 
       if (authStatus == AuthStatus.authenticated) {
-        if (isLoggingIn || isGoingToSplash) {
-          if (isAdminOrStaff) return '/admin';
-          if (isDoctor) return '/doctor';
+        if (isAtAuthScreen || location == '/splash') {
+          if (userRole == 'admin' || userRole == 'staff') return '/admin';
+          if (userRole == 'doctor') return '/doctor';
           return '/';
         }
 
-        if (isGoingToAdmin && !isAdminOrStaff) return '/';
-        if (isGoingToDoctor && !isDoctor) return '/';
+        final isGoingToAdmin = location.startsWith('/admin');
+        
+        // === SỬA LỖI TẠI ĐÂY ===
+        // Điều kiện phải chặt chẽ: chỉ đúng khi đến '/doctor' hoặc '/doctor/...'
+        final isGoingToDoctor = location == '/doctor' || location.startsWith('/doctor/');
 
-        final isGoingToUserFlow = !isGoingToAdmin && !isGoingToDoctor;
-        if (isGoingToUserFlow && (isAdminOrStaff || isDoctor)) {
-          if (isAdminOrStaff) return '/admin';
-          if (isDoctor) return '/doctor';
+        if (isGoingToAdmin && !(userRole == 'admin' || userRole == 'staff')) {
+          return '/';
+        }
+
+        if (isGoingToDoctor && userRole != 'doctor') {
+          return '/';
         }
       }
+      
       return null;
     },
   );

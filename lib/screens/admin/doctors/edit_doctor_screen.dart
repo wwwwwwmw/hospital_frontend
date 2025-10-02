@@ -41,7 +41,7 @@ class _EditDoctorScreenState extends State<EditDoctorScreen> {
             .firstWhere((doc) => doc.id == widget.doctorId);
         
         _fullNameController.text = initialDoctorData.fullName;
-        _emailController.text = initialDoctorData.email;
+        _emailController.text = initialDoctorData.email ?? '';
         _phoneController.text = initialDoctorData.phone ?? '';
         _isActive = initialDoctorData.isActive;
         _selectedDepartmentId = initialDoctorData.department.id;

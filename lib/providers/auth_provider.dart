@@ -140,5 +140,33 @@ class AuthProvider with ChangeNotifier {
       return false;
     }
   }
+  Future<bool> updateProfile({required String fullName}) async {
+    if (_token == null) {
+      _errorMessage = "Phiên đăng nhập đã hết hạn.";
+      notifyListeners();
+      return false;
+    }
+
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Giả định bạn sẽ thêm hàm updateMyProfile vào ApiService
+      final updatedUser = await _apiService.updateMyProfile(
+        token: _token!,
+        fullName: fullName,
+      );
+      
+      // Cập nhật lại thông tin user trong provider
+      _user = updatedUser; 
+      notifyListeners();
+      return true;
+
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
 }
 

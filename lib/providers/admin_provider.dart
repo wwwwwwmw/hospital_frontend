@@ -166,69 +166,9 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- Patient Management ---
-  Future<void> fetchAllPatients({required String token}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    try {
-      _allPatients = await _apiService.adminGetAllPatients(token: token);
-    } catch (e) {
-      _errorMessage = e.toString();
-    }
-    _isLoading = false;
-    notifyListeners();
-  }
+  
 
-  Future<bool> createPatient({required String token, required Map<String, dynamic> patientData}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    try {
-      await _apiService.adminCreatePatient(token: token, patientData: patientData);
-      await fetchAllPatients(token: token);
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> updatePatient({required String token, required String patientId, required Map<String, dynamic> patientData}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    try {
-      await _apiService.adminUpdatePatient(token: token, patientId: patientId, patientData: patientData);
-      await fetchAllPatients(token: token);
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> deletePatient({required String token, required String patientId}) async {
-    _errorMessage = null;
-    try {
-      await _apiService.adminDeletePatient(token: token, patientId: patientId);
-      _allPatients.removeWhere((p) => p.id == patientId);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
+  
 
   // --- User Management ---
   Future<void> fetchAllUsers({required String token}) async {

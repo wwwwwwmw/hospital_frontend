@@ -58,7 +58,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                     ListTile(
                       leading: const Icon(Icons.email_outlined),
                       title: const Text('Email'),
-                      subtitle: Text(doctor.email),
+                      subtitle: Text(doctor.email ?? 'Chưa cập nhật'),
                     ),
                     ListTile(
                       leading: const Icon(Icons.phone_outlined),

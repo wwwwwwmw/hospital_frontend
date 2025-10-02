@@ -21,30 +21,7 @@ class DoctorDashboardScreen extends StatelessWidget {
           )
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(8.0),
-        children: [
-          _buildDashboardCard(
-            context,
-            icon: Icons.calendar_today_outlined,
-            title: 'Xem lịch hẹn',
-            subtitle: 'Xem danh sách các lịch hẹn đã đặt',
-            onTap: () {
-              context.go('/doctor/appointments');
-            },
-          ),
-          _buildDashboardCard(
-            context,
-            icon: Icons.schedule_outlined,
-            title: 'Đăng ký lịch làm việc',
-            subtitle: 'Thiết lập thời gian làm việc trong tuần',
-            onTap: () {
-              // SỬA Ở ĐÂY
-              context.go('/doctor/register-schedule');
-            },
-          ),
-        ],
-      ),
+      
     );
   }
 

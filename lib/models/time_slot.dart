@@ -1,16 +1,18 @@
 import 'package:json_annotation/json_annotation.dart';
 
-// !!! THÊM DÒNG NÀY VÀO !!!
 part 'time_slot.g.dart';
 
 @JsonSerializable()
 class TimeSlot {
-  final DateTime startTime;
-  final DateTime endTime;
+  @JsonKey(defaultValue: '') // Thêm giá trị mặc định
+  final String start;
+  
+  @JsonKey(defaultValue: '') // Thêm giá trị mặc định
+  final String end;
 
   TimeSlot({
-    required this.startTime,
-    required this.endTime,
+    required this.start,
+    required this.end,
   });
 
   factory TimeSlot.fromJson(Map<String, dynamic> json) =>
@@ -18,4 +20,3 @@ class TimeSlot {
 
   Map<String, dynamic> toJson() => _$TimeSlotToJson(this);
 }
-

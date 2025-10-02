@@ -47,7 +47,7 @@ class DoctorCard extends StatelessWidget {
                     // Trong ứng dụng thực tế, bạn sẽ lấy và hiển thị tên khoa
                     // Bây giờ, chúng ta sẽ hiển thị email như một placeholder
                     Text(
-                      doctor.email,
+                      doctor.email ?? '',
                       style: TextStyle(
                         color: Colors.grey[600],
                       ),

@@ -1,10 +1,12 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/patient.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/doctor_list_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/time_slot_grid.dart';
+import '../../providers/patient_provider.dart';
 import '../../utils/date_formatter.dart';
 
 class AppointmentBookingScreen extends StatefulWidget {
@@ -17,54 +19,55 @@ class AppointmentBookingScreen extends StatefulWidget {
 }
 
 class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
+  String? _selectedPatientId;
+
   @override
   void initState() {
     super.initState();
-    // Chạy code sau khi frame đầu tiên được build xong
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
       final appointmentProvider =
           Provider.of<AppointmentProvider>(context, listen: false);
       
-      // Reset trạng thái và tải dữ liệu cần thiết
-      appointmentProvider.selectDate(DateTime.now()); // Luôn bắt đầu với ngày hôm nay
+      appointmentProvider.selectDate(DateTime.now());
       Provider.of<DoctorListProvider>(context, listen: false)
           .fetchDoctorById(widget.doctorId);
       appointmentProvider.fetchAvailableSlots(widget.doctorId);
+
+      if (token != null) {
+        Provider.of<PatientProvider>(context, listen: false).fetchMyPatients(token);
+      }
     });
   }
 
-  // Hàm hiển thị cửa sổ chọn ngày
   Future<void> _selectDate(BuildContext context) async {
     final provider = Provider.of<AppointmentProvider>(context, listen: false);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: provider.selectedDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)), // Cho phép đặt trước 30 ngày
+      lastDate: DateTime.now().add(const Duration(days: 30)),
     );
-    // Nếu người dùng chọn một ngày mới
     if (picked != null && picked != provider.selectedDate) {
       provider.selectDate(picked);
-      // Tải lại các khung giờ trống cho ngày mới được chọn
       provider.fetchAvailableSlots(widget.doctorId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Lấy các provider để sử dụng
     final doctorProvider = Provider.of<DoctorListProvider>(context);
     final appointmentProvider = Provider.of<AppointmentProvider>(context);
+    final patientProvider = Provider.of<PatientProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
     final doctor = doctorProvider.selectedDoctor;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Đặt lịch hẹn'),
       ),
-      body: doctor == null
-          ? const Center(child: CircularProgressIndicator()) // Hiển thị loading khi chưa có thông tin bác sĩ
+      body: doctor == null || (patientProvider.isLoading && patientProvider.myPatients.isEmpty)
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -74,14 +77,36 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 24),
 
-                  Text('1. Chọn ngày khám',
+                  Text('1. Chọn bệnh nhân',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedPatientId,
+                    hint: const Text('Chọn hồ sơ bệnh nhân'),
+                    isExpanded: true,
+                    items: patientProvider.myPatients.map((Patient patient) {
+                      return DropdownMenuItem<String>(
+                        value: patient.id,
+                        child: Text(patient.fullName),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPatientId = value;
+                      });
+                    },
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    validator: (v) => v == null ? 'Vui lòng chọn bệnh nhân' : null,
+                  ),
+                  const Divider(height: 32),
+
+                  Text('2. Chọn ngày khám',
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          // SỬA Ở ĐÂY: Đổi tên hàm thành formatDate
                           DateFormatter.formatDate(appointmentProvider.selectedDate),
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.normal)
                         ),
@@ -94,42 +119,39 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   ),
                   const Divider(height: 32),
 
-                  Text('2. Chọn giờ khám',
+                  Text('3. Chọn ca khám',
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 16),
-                  const TimeSlotGrid(), // Widget hiển thị các khung giờ
+                  
+                  _buildShiftList(appointmentProvider),
                 ],
               ),
             ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
-          // Vô hiệu hóa nút nếu chưa chọn giờ hoặc đang tải
-          onPressed: (appointmentProvider.selectedSlot == null ||
-                  appointmentProvider.isBooking)
+          onPressed: (_selectedPatientId == null || 
+                      appointmentProvider.selectedShift == null || // <<< SỬA
+                      appointmentProvider.isBooking)
               ? null
               : () async {
-                  if (authProvider.token == null) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'),
-                        backgroundColor: Colors.red,
-                      ));
-                      return;
-                  }
-                  final success =
-                      await appointmentProvider.createAppointment(
+                  final success = await appointmentProvider.createAppointment(
                     token: authProvider.token!,
+                    patientId: _selectedPatientId!,
                     doctorId: widget.doctorId,
                   );
                   if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Đặt lịch thành công!'), backgroundColor: Colors.green,));
-                    context.pop(); // Quay lại màn hình trước đó
+                      content: Text('Đặt lịch thành công! Hệ thống đã tự động chọn giờ trống sớm nhất trong ca cho bạn.'), 
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 4),
+                    ));
+                    context.pop(); 
                   } else if (mounted && appointmentProvider.bookingError != null) {
-                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text('Lỗi: ${appointmentProvider.bookingError}'),
                         backgroundColor: Colors.red,
-                       ));
+                      ));
                   }
                 },
           style: ElevatedButton.styleFrom(
@@ -142,5 +164,66 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       ),
     );
   }
-}
 
+  /// Widget mới: Hiển thị danh sách các ca làm việc có thể chọn
+  Widget _buildShiftList(AppointmentProvider provider) {
+    if (provider.isLoadingSlots) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.0),
+        child: CircularProgressIndicator(),
+      ));
+    }
+    if (provider.slotsError != null) {
+      return Center(child: Text('Lỗi tải lịch khám: ${provider.slotsError}'));
+    }
+    if (provider.availableShifts.isEmpty) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.0),
+        child: Text('Không có lịch khám trống cho ngày này.'),
+      ));
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: provider.availableShifts.length,
+      itemBuilder: (context, index) {
+        final shift = provider.availableShifts[index];
+        final isFull = shift.bookedCount >= shift.capacity;
+        final isSelected = provider.selectedShift?.start == shift.start;
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12.0),
+          child: ListTile(
+            selected: isSelected,
+            selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+              side: BorderSide(
+                color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+                width: 1.5,
+              ),
+            ),
+            title: Text(
+              'Ca làm việc: ${shift.shiftName}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              'Còn trống: ${shift.capacity - shift.bookedCount}/${shift.capacity}',
+              style: TextStyle(
+                color: isFull ? Colors.red : Colors.green.shade700,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            trailing: isFull 
+                ? const Chip(label: Text('Đã đầy'), backgroundColor: Colors.red, labelStyle: TextStyle(color: Colors.white)) 
+                : const Icon(Icons.check_circle_outline, color: Colors.grey),
+            onTap: isFull ? null : () {
+              provider.selectShift(shift);
+            },
+          ),
+        );
+      },
+    );
+  }
+}

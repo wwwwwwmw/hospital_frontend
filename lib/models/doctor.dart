@@ -9,17 +9,18 @@ class Doctor {
   final String id;
   
   final String fullName;
-  final String email;
+
+  // SỬA Ở ĐÂY: Cho phép email có thể null
+  final String? email; 
+  
   final String? phone;
   final Department department;
-
-  // Bổ sung trường isActive còn thiếu
   final bool isActive;
 
   Doctor({
     required this.id,
     required this.fullName,
-    required this.email,
+    this.email, // Sửa ở đây
     this.phone,
     required this.department,
     required this.isActive,

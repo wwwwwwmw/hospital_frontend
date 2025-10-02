@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 import '../models/doctor.dart';
 import '../models/appointment.dart';
+import '../models/shift_info.dart';
 import '../models/time_slot.dart';
 import '../models/patient.dart';
 import '../models/department.dart';
 import '../models/user.dart';
-import '../models/doctor_schedule.dart'; // <<< THÊM IMPORT MỚI
+import '../models/doctor_schedule.dart';
 
 class AuthResponse {
   final String token;
@@ -22,9 +23,6 @@ class AuthResponse {
 }
 
 class ApiService {
-  // LƯU Ý QUAN TRỌNG:
-  // Thay 'localhost' bằng IP của máy tính của bạn khi chạy trên điện thoại thật
-  // Ví dụ: 'http://192.168.1.10:5000/api'
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'http://localhost:5000/api',
   ));
@@ -53,7 +51,7 @@ class ApiService {
     }
   }
 
-  // --- Auth, Patient Profile APIs ---
+  // --- Auth & User Profile APIs ---
   Future<AuthResponse> register({
     required String fullName,
     required String email,
@@ -94,33 +92,47 @@ class ApiService {
     try {
       await _dio.post(
         '/auth/change-password',
-        data: {
-          'oldPassword': oldPassword,
-          'newPassword': newPassword,
-        },
+        data: {'oldPassword': oldPassword, 'newPassword': newPassword},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
   }
-  
-  Future<Patient> getMyPatientProfile({required String token}) async {
+
+  Future<Map<String, dynamic>> updateMyProfile({
+    required String token,
+    required String fullName,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/auth/me',
+        data: {'fullName': fullName},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  // --- Patient Management APIs (for Guardian) ---
+  Future<List<Patient>> getMyPatients({required String token}) async {
     try {
       final response = await _dio.get(
-        '/patients/me',
+        '/patients/my',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      return Patient.fromJson(response.data);
+      return (response.data as List).map((json) => Patient.fromJson(json)).toList();
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
   }
   
-  Future<Patient> updateMyPatientProfile({required String token, required Map<String, dynamic> patientData}) async {
-     try {
-      final response = await _dio.put(
-        '/patients/me',
+  Future<Patient> createPatient({required String token, required Map<String, dynamic> patientData}) async {
+    try {
+      final response = await _dio.post(
+        '/patients',
         data: patientData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
@@ -130,7 +142,31 @@ class ApiService {
     }
   }
 
-  // --- Public/User Doctor and Department APIs ---
+  Future<Patient> updatePatient({required String token, required String patientId, required Map<String, dynamic> patientData}) async {
+    try {
+      final response = await _dio.patch(
+        '/patients/$patientId',
+        data: patientData,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return Patient.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  Future<void> deletePatient({required String token, required String patientId}) async {
+    try {
+      await _dio.delete(
+        '/patients/$patientId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+  
+  // --- Public/User-Facing APIs ---
   Future<List<Doctor>> getDoctors() async {
     try {
       final response = await _dio.get('/doctors');
@@ -161,10 +197,10 @@ class ApiService {
   }
 
   // --- Appointment APIs ---
-  Future<List<TimeSlot>> getSlotsByDoctorAndDate(String doctorId, String date) async {
+  Future<List<ShiftInfo>> getSlotsByDoctorAndDate(String doctorId, String date) async {
     try {
       final response = await _dio.get('/doctors/$doctorId/slots', queryParameters: {'date': date});
-      return (response.data as List).map((json) => TimeSlot.fromJson(json)).toList();
+      return (response.data as List).map((json) => ShiftInfo.fromJson(json)).toList();
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
@@ -172,15 +208,21 @@ class ApiService {
 
   Future<void> createAppointment({
     required String token,
+    required String patientId,
     required String doctorId,
-    required DateTime startTime,
+    required String date,
+    required String shiftStart,
+    required String shiftEnd,
   }) async {
     try {
       await _dio.post(
         '/appointments',
         data: {
-          'doctor': doctorId,
-          'startTime': startTime.toIso8601String(),
+          'patientId': patientId,
+          'doctorId': doctorId,
+          'date': date,
+          'shiftStart': shiftStart,
+          'shiftEnd': shiftEnd,
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );

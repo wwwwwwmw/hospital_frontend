@@ -7,11 +7,11 @@ part of 'time_slot.dart';
 // **************************************************************************
 
 TimeSlot _$TimeSlotFromJson(Map<String, dynamic> json) => TimeSlot(
-  startTime: DateTime.parse(json['startTime'] as String),
-  endTime: DateTime.parse(json['endTime'] as String),
+  start: json['start'] as String? ?? '',
+  end: json['end'] as String? ?? '',
 );
 
 Map<String, dynamic> _$TimeSlotToJson(TimeSlot instance) => <String, dynamic>{
-  'startTime': instance.startTime.toIso8601String(),
-  'endTime': instance.endTime.toIso8601String(),
+  'start': instance.start,
+  'end': instance.end,
 };

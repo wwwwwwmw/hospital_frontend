@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
 import '../models/time_slot.dart';
+import '../models/shift_info.dart'; // <<< THÊM IMPORT MỚI
 import '../services/api_service.dart';
 import '../models/appointment.dart';
 
 class AppointmentProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
-  // Trạng thái cho việc đặt lịch
   DateTime _selectedDate = DateTime.now();
-  DateTime? _selectedSlot;
-  List<TimeSlot> _availableSlots = [];
+  ShiftInfo? _selectedShift; // <<< SỬA: Lưu lại cả ca đã chọn
+  List<ShiftInfo> _availableShifts = [];
   bool _isLoadingSlots = false;
   bool _isBooking = false;
   String? _slotsError;
   String? _bookingError;
-
-  // Trạng thái cho việc xem lịch hẹn
   List<Appointment> _myAppointments = [];
   bool _isLoadingAppointments = false;
   String? _fetchAppointmentsError;
 
-  // Getters
   DateTime get selectedDate => _selectedDate;
-  DateTime? get selectedSlot => _selectedSlot;
-  List<TimeSlot> get availableSlots => _availableSlots;
+  ShiftInfo? get selectedShift => _selectedShift; // <<< SỬA
+  List<ShiftInfo> get availableShifts => _availableShifts;
   bool get isLoadingSlots => _isLoadingSlots;
   bool get isBooking => _isBooking;
   String? get slotsError => _slotsError;
@@ -32,42 +29,43 @@ class AppointmentProvider with ChangeNotifier {
   bool get isLoadingAppointments => _isLoadingAppointments;
   String? get fetchAppointmentsError => _fetchAppointmentsError;
 
+  // --- Methods ---
+
   void selectDate(DateTime date) {
     _selectedDate = date;
-    _selectedSlot = null; // Reset giờ đã chọn khi đổi ngày
-    _availableSlots = []; // Xóa danh sách slot cũ
+    _selectedShift = null; // <<< SỬA
+    _availableShifts = [];
     notifyListeners();
   }
 
-  void selectSlot(DateTime slot) {
-    _selectedSlot = slot;
+  void selectShift(ShiftInfo shift) { // <<< SỬA
+    _selectedShift = shift;
     notifyListeners();
   }
 
-  /// Lấy các khung giờ trống của một bác sĩ theo ngày đã chọn
   Future<void> fetchAvailableSlots(String doctorId) async {
     _isLoadingSlots = true;
     _slotsError = null;
-    _availableSlots = []; // Reset list before fetching
+    _availableShifts = [];
     notifyListeners();
-
     try {
       final dateString = _selectedDate.toIso8601String().split('T').first;
-      _availableSlots =
+      _availableShifts =
           await _apiService.getSlotsByDoctorAndDate(doctorId, dateString);
     } catch (e) {
       _slotsError = e.toString();
     }
-
     _isLoadingSlots = false;
     notifyListeners();
   }
 
-  /// Tạo một lịch hẹn mới
-  Future<bool> createAppointment(
-      {required String token, required String doctorId}) async {
-    if (_selectedSlot == null) {
-      _bookingError = 'Vui lòng chọn một giờ khám.';
+  Future<bool> createAppointment({
+    required String token,
+    required String patientId,
+    required String doctorId,
+  }) async {
+    if (_selectedShift == null) {
+      _bookingError = 'Vui lòng chọn một ca khám.';
       notifyListeners();
       return false;
     }
@@ -77,12 +75,16 @@ class AppointmentProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      final dateString = _selectedDate.toIso8601String().split('T').first;
       await _apiService.createAppointment(
         token: token,
+        patientId: patientId,
         doctorId: doctorId,
-        startTime: _selectedSlot!,
+        date: dateString,
+        shiftStart: _selectedShift!.start, // <<< SỬA
+        shiftEnd: _selectedShift!.end,     // <<< SỬA
       );
-      // Tải lại danh sách lịch hẹn của tôi sau khi đặt thành công
+      
       await fetchMyAppointments(token: token);
       _isBooking = false;
       notifyListeners();
@@ -115,11 +117,9 @@ class AppointmentProvider with ChangeNotifier {
   Future<bool> cancelAppointment(
       {required String token, required String appointmentId}) async {
     _fetchAppointmentsError = null;
-    // Không cần set loading vì thao tác này nhanh
     try {
       await _apiService.cancelAppointment(
           token: token, appointmentId: appointmentId);
-      // Sau khi hủy thành công, tải lại danh sách để cập nhật trạng thái
       await fetchMyAppointments(token: token);
       return true;
     } catch (e) {
@@ -129,4 +129,3 @@ class AppointmentProvider with ChangeNotifier {
     }
   }
 }
-

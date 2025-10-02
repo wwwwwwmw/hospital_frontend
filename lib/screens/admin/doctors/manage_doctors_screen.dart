@@ -99,7 +99,7 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
               return Card(
                 child: ListTile(
                   title: Text(doctor.fullName),
-                  subtitle: Text(doctor.email),
+                  subtitle: Text(doctor.email ?? ''),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
