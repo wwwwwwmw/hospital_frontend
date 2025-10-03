@@ -60,7 +60,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   child: ListTile(
                     title: Text('Bệnh nhân: ${appointment.patient?.fullName ?? 'N/A'}'),
                     subtitle: Text(
-                        'Thời gian: ${DateFormatter.formatDate(appointment.startTime)} - ${DateFormatter.formatTime(appointment.startTime)}\nTrạng thái: ${appointment.status}'),
+                        'Thời gian: ${DateFormatter.formatDate(appointment.date)} - ${appointment.slotStart}\nTrạng thái: ${appointment.status}'),
                     isThreeLine: true,
                   ),
                 );

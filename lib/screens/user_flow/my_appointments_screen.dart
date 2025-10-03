@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/date_formatter.dart';
@@ -16,23 +17,24 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   @override
   void initState() {
     super.initState();
-    // Gọi provider để lấy danh sách lịch hẹn ngay khi màn hình được tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.token != null) {
-        Provider.of<AppointmentProvider>(context, listen: false)
-            .fetchMyAppointments(token: authProvider.token!);
-      }
+      _fetchAppointments();
     });
   }
 
-  // Hàm xử lý việc hủy lịch hẹn
+  void _fetchAppointments() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.token != null) {
+      Provider.of<AppointmentProvider>(context, listen: false)
+          .fetchMyAppointments(token: authProvider.token!);
+    }
+  }
+
   Future<void> _cancelAppointment(String appointmentId) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final appointmentProvider =
         Provider.of<AppointmentProvider>(context, listen: false);
 
-    // Hiển thị dialog xác nhận
     final bool? confirm = await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -52,7 +54,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
 
     if (confirm == true && authProvider.token != null) {
-      // SỬA Ở ĐÂY: Dùng tham số được đặt tên
       final success = await appointmentProvider.cancelAppointment(
         token: authProvider.token!,
         appointmentId: appointmentId,
@@ -66,25 +67,21 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
+        // Sau khi hủy, tải lại danh sách để cập nhật trạng thái
+        if(success) _fetchAppointments();
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lịch hẹn của tôi'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              if (authProvider.token != null) {
-                Provider.of<AppointmentProvider>(context, listen: false)
-                    .fetchMyAppointments(token: authProvider.token!);
-              }
-            },
+            onPressed: _fetchAppointments,
           ),
         ],
       ),
@@ -96,7 +93,14 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
           if (provider.fetchAppointmentsError != null) {
             return Center(
-                child: Text('Lỗi: ${provider.fetchAppointmentsError}'));
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Lỗi: ${provider.fetchAppointmentsError}',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
 
           if (provider.myAppointments.isEmpty) {
@@ -110,38 +114,56 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             itemCount: provider.myAppointments.length,
             itemBuilder: (context, index) {
               final appointment = provider.myAppointments[index];
-              final isCancelled = appointment.status == 'cancelled';
+              final isCancelled = appointment.status.startsWith('canceled');
+
+              IconData statusIcon;
+              Color statusColor;
+
+              if (isCancelled) {
+                statusIcon = Icons.cancel_outlined; // Icon gạch chéo
+                statusColor = Colors.red; // Màu đỏ
+              } else if (appointment.status == 'completed') {
+                statusIcon = Icons.check_circle_outline;
+                statusColor = Colors.green;
+              } else {
+                statusIcon = Icons.medical_services_outlined; // Icon mặc định
+                statusColor = Theme.of(context).primaryColor;
+              }
+
               return Card(
-                elevation: 3,
+                elevation: 2,
                 margin: const EdgeInsets.symmetric(vertical: 8.0),
-                color: isCancelled ? Colors.grey[300] : null,
                 child: ListTile(
+                  onTap: () {
+                    context.goNamed(
+                      'appointmentDetail',
+                      pathParameters: {'appointmentId': appointment.id},
+                      extra: appointment,
+                    );
+                  },
                   leading: CircleAvatar(
-                    backgroundColor: isCancelled ? Colors.grey : (appointment.status == 'confirmed' ? Colors.green : Colors.orange),
-                    child: Icon(
-                      isCancelled ? Icons.cancel_outlined : (appointment.status == 'confirmed' ? Icons.check_circle_outline : Icons.hourglass_empty),
-                      color: Colors.white,
-                    ),
+                    backgroundColor: statusColor,
+                    child: Icon(statusIcon, color: Colors.white),
                   ),
                   title: Text(
                     'BS. ${appointment.doctor.fullName}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       decoration: isCancelled ? TextDecoration.lineThrough : null,
+                      color: isCancelled ? Colors.grey[600] : null,
                     ),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text(
-                          'Ngày: ${DateFormatter.formatDate(appointment.startTime)}'),
-                      Text('Giờ: ${DateFormatter.formatTime(appointment.startTime)}'),
-                      Text('Trạng thái: ${appointment.status}'),
+                      Text('Bệnh nhân: ${appointment.patient?.fullName ?? 'N/A'}'),
+                      Text('Ngày: ${DateFormatter.formatDate(appointment.date)}'),
+                      Text('Giờ: ${appointment.slotStart}'),
                     ],
                   ),
                   trailing: isCancelled
-                      ? null
+                      ? null // Ẩn nút xóa nếu đã hủy
                       : IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red),
                           onPressed: () => _cancelAppointment(appointment.id),
@@ -156,4 +178,3 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
   }
 }
-

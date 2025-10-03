@@ -105,7 +105,7 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                       children: [
                         Text('BS: ${appointment.doctor.fullName}'),
                         Text(
-                            'Thời gian: ${DateFormatter.formatDate(appointment.startTime)} - ${DateFormatter.formatTime(appointment.startTime)}'),
+                            'Thời gian: ${DateFormatter.formatDate(appointment.date)} - ${appointment.slotStart}\nTrạng thái: ${appointment.status}'),
                       ],
                     ),
                     trailing: DropdownButton<String>(

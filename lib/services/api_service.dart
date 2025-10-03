@@ -214,16 +214,24 @@ class ApiService {
     required String shiftStart,
     required String shiftEnd,
   }) async {
+    
+    // Tạo body để gửi đi
+    final Map<String, dynamic> body = {
+      'patientId': patientId,
+      'doctorId': doctorId,
+      'date': date,
+      'shiftStart': shiftStart,
+      'shiftEnd': shiftEnd,
+    };
+
+    // --- DÒNG DEBUG ĐÃ ĐƯỢC THÊM VÀO ĐÂY ---
+    print('[APISERVICE] Đang gửi body lên backend: $body');
+    // -----------------------------------------
+
     try {
       await _dio.post(
         '/appointments',
-        data: {
-          'patientId': patientId,
-          'doctorId': doctorId,
-          'date': date,
-          'shiftStart': shiftStart,
-          'shiftEnd': shiftEnd,
-        },
+        data: body, // Sử dụng biến body ở đây
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } on DioException catch (e) {
@@ -247,6 +255,11 @@ class ApiService {
     try {
       await _dio.post(
         '/appointments/$appointmentId/cancel',
+        // THÊM DÒNG DATA NÀY VÀO
+        data: {
+          'by': 'patient',
+          'reason': 'Cancelled by user via app'
+        },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } on DioException catch (e) {

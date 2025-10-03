@@ -106,7 +106,7 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
                       IconButton(
                         icon: const Icon(Icons.edit_outlined),
                         onPressed: () {
-                          context.go('/admin/edit-doctor/${doctor.id}');
+                          context.go('/admin/manage-doctors/edit/${doctor.id}');
                         },
                       ),
                       IconButton(
@@ -123,7 +123,7 @@ class _ManageDoctorsScreenState extends State<ManageDoctorsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          context.go('/admin/edit-doctor/new');
+          context.go('/admin/manage-doctors/edit/new');
         },
         child: const Icon(Icons.add),
         tooltip: 'Thêm bác sĩ mới',

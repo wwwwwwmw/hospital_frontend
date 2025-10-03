@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_frontend/models/appointment.dart';
+import 'package:hospital_frontend/screens/user_flow/appointment_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -86,6 +88,15 @@ class AppRouter {
           GoRoute(
             path: 'profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/my-appointments/:appointmentId',
+            name: 'appointmentDetail',
+            builder: (context, state) {
+              // Lấy đối tượng appointment đã được truyền qua từ màn hình trước
+              final Appointment appointment = state.extra as Appointment;
+              return AppointmentDetailScreen(appointment: appointment);
+            },
           ),
           GoRoute(
             path: 'edit-profile',

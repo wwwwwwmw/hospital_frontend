@@ -255,7 +255,9 @@ class AdminProvider with ChangeNotifier {
           id: oldAppointment.id,
           doctor: oldAppointment.doctor,
           patient: oldAppointment.patient,
-          startTime: oldAppointment.startTime,
+          service: oldAppointment.service,
+          date: oldAppointment.date,
+          slotStart: oldAppointment.slotStart,
           status: status, // New status
         );
         notifyListeners();

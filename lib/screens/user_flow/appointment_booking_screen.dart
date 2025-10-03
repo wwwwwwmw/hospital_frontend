@@ -1,13 +1,14 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../models/patient.dart';
 import '../../providers/appointment_provider.dart';
-import '../../providers/doctor_list_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/doctor_list_provider.dart';
 import '../../providers/patient_provider.dart';
 import '../../utils/date_formatter.dart';
+
 
 class AppointmentBookingScreen extends StatefulWidget {
   final String doctorId;
@@ -45,7 +46,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: provider.selectedDate,
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)), // Cho phép chọn ngày hôm nay
       lastDate: DateTime.now().add(const Duration(days: 30)),
     );
     if (picked != null && picked != provider.selectedDate) {
@@ -124,6 +125,16 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   const SizedBox(height: 16),
                   
                   _buildShiftList(appointmentProvider),
+
+                  // Hiển thị lỗi đặt hẹn nếu có
+                  if (appointmentProvider.bookingError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Text(
+                        'Lỗi: ${appointmentProvider.bookingError}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -131,9 +142,9 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
           onPressed: (_selectedPatientId == null || 
-                      appointmentProvider.selectedShift == null || // <<< SỬA
+                      appointmentProvider.selectedShift == null ||
                       appointmentProvider.isBooking)
-              ? null
+              ? null // Vô hiệu hóa nút nếu chưa chọn đủ thông tin hoặc đang xử lý
               : () async {
                   final success = await appointmentProvider.createAppointment(
                     token: authProvider.token!,
@@ -142,17 +153,12 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   );
                   if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Đặt lịch thành công! Hệ thống đã tự động chọn giờ trống sớm nhất trong ca cho bạn.'), 
+                      content: Text('Đặt lịch thành công!'), 
                       backgroundColor: Colors.green,
-                      duration: Duration(seconds: 4),
                     ));
                     context.pop(); 
-                  } else if (mounted && appointmentProvider.bookingError != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Lỗi: ${appointmentProvider.bookingError}'),
-                        backgroundColor: Colors.red,
-                      ));
-                  }
+                  } 
+                  // Lỗi đã được hiển thị trực tiếp trên màn hình thông qua Consumer
                 },
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -165,22 +171,15 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
-  /// Widget mới: Hiển thị danh sách các ca làm việc có thể chọn
   Widget _buildShiftList(AppointmentProvider provider) {
     if (provider.isLoadingSlots) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 32.0),
-        child: CircularProgressIndicator(),
-      ));
+      return const Center(child: CircularProgressIndicator());
     }
     if (provider.slotsError != null) {
       return Center(child: Text('Lỗi tải lịch khám: ${provider.slotsError}'));
     }
     if (provider.availableShifts.isEmpty) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 32.0),
-        child: Text('Không có lịch khám trống cho ngày này.'),
-      ));
+      return const Center(child: Text('Không có lịch khám trống cho ngày này.'));
     }
 
     return ListView.builder(
@@ -197,27 +196,18 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           child: ListTile(
             selected: isSelected,
             selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              side: BorderSide(
-                color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
-                width: 1.5,
-              ),
-            ),
             title: Text(
               'Ca làm việc: ${shift.shiftName}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
               'Còn trống: ${shift.capacity - shift.bookedCount}/${shift.capacity}',
-              style: TextStyle(
-                color: isFull ? Colors.red : Colors.green.shade700,
-                fontWeight: FontWeight.bold,
-              ),
             ),
             trailing: isFull 
-                ? const Chip(label: Text('Đã đầy'), backgroundColor: Colors.red, labelStyle: TextStyle(color: Colors.white)) 
-                : const Icon(Icons.check_circle_outline, color: Colors.grey),
+              ? const Chip(label: Text('Đã đầy'), backgroundColor: Colors.red) 
+              : (isSelected 
+                  ? Icon(Icons.check_circle, color: Theme.of(context).primaryColor)
+                  : const Icon(Icons.radio_button_unchecked)),
             onTap: isFull ? null : () {
               provider.selectShift(shift);
             },
