@@ -6,9 +6,8 @@ import 'config/router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/doctor_list_provider.dart';
 import 'providers/appointment_provider.dart';
-import 'providers/admin_provider.dart';
 import 'providers/patient_provider.dart';
-import 'providers/doctor_panel_provider.dart';
+import 'providers/admin_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -41,7 +40,6 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
         ChangeNotifierProvider(create: (_) => PatientProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
-        ChangeNotifierProvider(create: (_) => DoctorPanelProvider()),
       ],
       child: MaterialApp.router(
         routerConfig: _appRouter.router,

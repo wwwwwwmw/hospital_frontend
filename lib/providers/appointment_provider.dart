@@ -166,4 +166,25 @@ class AppointmentProvider with ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> deleteAppointment(
+      {required String token, required String appointmentId}) async {
+    // Tạm thời xóa lịch hẹn khỏi danh sách để UI phản hồi ngay
+    final originalAppointments = List<Appointment>.from(_myAppointments);
+    _myAppointments.removeWhere((appt) => appt.id == appointmentId);
+    notifyListeners();
+    
+    _fetchAppointmentsError = null;
+    try {
+      await _apiService.deleteAppointment(
+          token: token, appointmentId: appointmentId);
+      return true;
+    } catch (e) {
+      _fetchAppointmentsError = e.toString();
+      // Khôi phục lại danh sách nếu có lỗi
+      _myAppointments = originalAppointments;
+      notifyListeners();
+      return false;
+    }
+  }
 }

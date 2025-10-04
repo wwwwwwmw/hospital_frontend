@@ -7,23 +7,29 @@ part of 'shift_info.dart';
 // **************************************************************************
 
 ShiftInfo _$ShiftInfoFromJson(Map<String, dynamic> json) => ShiftInfo(
-  start: json['start'] as String? ?? '',
-  end: json['end'] as String? ?? '',
-  shiftName: json['shiftName'] as String? ?? 'Unknown Shift',
-  capacity: (json['capacity'] as num?)?.toInt() ?? 0,
-  bookedCount: (json['bookedCount'] as num?)?.toInt() ?? 0,
-  slots:
-      (json['slots'] as List<dynamic>?)
-          ?.map((e) => TimeSlot.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      [],
+  shiftName: json['shiftName'] as String,
+  start: json['start'] as String,
+  end: json['end'] as String,
+  capacity: (json['capacity'] as num).toInt(),
+  bookedCount: (json['bookedCount'] as num).toInt(),
+  slots: (json['slots'] as List<dynamic>)
+      .map((e) => TimeSlot.fromJson(e as Map<String, dynamic>))
+      .toList(),
 );
 
 Map<String, dynamic> _$ShiftInfoToJson(ShiftInfo instance) => <String, dynamic>{
+  'shiftName': instance.shiftName,
   'start': instance.start,
   'end': instance.end,
-  'shiftName': instance.shiftName,
   'capacity': instance.capacity,
   'bookedCount': instance.bookedCount,
-  'slots': instance.slots.map((e) => e.toJson()).toList(),
+  'slots': instance.slots,
+};
+
+TimeSlot _$TimeSlotFromJson(Map<String, dynamic> json) =>
+    TimeSlot(start: json['start'] as String, end: json['end'] as String);
+
+Map<String, dynamic> _$TimeSlotToJson(TimeSlot instance) => <String, dynamic>{
+  'start': instance.start,
+  'end': instance.end,
 };

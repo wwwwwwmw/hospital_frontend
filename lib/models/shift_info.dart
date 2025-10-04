@@ -1,41 +1,39 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'time_slot.dart';
 
 part 'shift_info.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class ShiftInfo {
-  // === BỔ SUNG 2 TRƯỜNG CÒN THIẾU ===
-  @JsonKey(defaultValue: '')
-  final String start;
-
-  @JsonKey(defaultValue: '')
-  final String end;
-  
-  // === CÁC TRƯỜNG CŨ GIỮ NGUYÊN ===
-  @JsonKey(defaultValue: 'Unknown Shift')
   final String shiftName;
-
-  @JsonKey(defaultValue: 0)
+  final String start;
+  final String end;
   final int capacity;
-
-  @JsonKey(defaultValue: 0)
   final int bookedCount;
-
-  @JsonKey(defaultValue: [])
   final List<TimeSlot> slots;
 
   ShiftInfo({
-    required this.start, // Thêm vào constructor
-    required this.end,   // Thêm vào constructor
     required this.shiftName,
+    required this.start,
+    required this.end,
     required this.capacity,
     required this.bookedCount,
     required this.slots,
   });
 
-  factory ShiftInfo.fromJson(Map<String, dynamic> json) =>
-      _$ShiftInfoFromJson(json);
-
+  factory ShiftInfo.fromJson(Map<String, dynamic> json) => _$ShiftInfoFromJson(json);
   Map<String, dynamic> toJson() => _$ShiftInfoToJson(this);
+}
+
+@JsonSerializable()
+class TimeSlot {
+  final String start;
+  final String end;
+
+  TimeSlot({
+    required this.start,
+    required this.end,
+  });
+
+  factory TimeSlot.fromJson(Map<String, dynamic> json) => _$TimeSlotFromJson(json);
+  Map<String, dynamic> toJson() => _$TimeSlotToJson(this);
 }

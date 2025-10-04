@@ -267,6 +267,17 @@ class ApiService {
     }
   }
 
+  Future<void> deleteAppointment({required String token, required String appointmentId}) async {
+    try {
+      await _dio.delete(
+        '/appointments/$appointmentId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
   // --- Doctor Panel APIs ---
   Future<List<Appointment>> getMyAppointmentsForDoctor({required String token}) async {
     try {
@@ -436,6 +447,18 @@ class ApiService {
     try {
       final response = await _dio.get(
         '/patients',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return (response.data as List).map((json) => Patient.fromJson(json)).toList();
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  Future<List<Patient>> adminGetPatientsByUser({required String token, required String userId}) async {
+    try {
+      final response = await _dio.get(
+        '/patients/by-user/$userId',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       return (response.data as List).map((json) => Patient.fromJson(json)).toList();

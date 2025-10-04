@@ -1,19 +1,13 @@
-import 'package:intl/intl.dart';
-
 class DateFormatter {
-  // Định dạng ngày thành 'dd/MM/yyyy' (ví dụ: 27/09/2025)
   static String formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  // Định dạng giờ thành 'HH:mm' (ví dụ: 16:30)
-  static String formatTime(DateTime date) {
-    return DateFormat('HH:mm').format(date);
+  static String formatDateTime(DateTime dateTime) {
+    return '${formatDate(dateTime)} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  // Định dạng đầy đủ ngày giờ (ví dụ: 16:30, 27/09/2025)
-  static String formatDateTime(DateTime date) {
-    return DateFormat('HH:mm, dd/MM/yyyy').format(date);
+  static String formatTime(DateTime dateTime) {
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
-

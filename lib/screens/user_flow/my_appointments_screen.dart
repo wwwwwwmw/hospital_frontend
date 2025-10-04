@@ -73,6 +73,47 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     }
   }
 
+  Future<void> _deleteAppointment(String appointmentId) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final appointmentProvider =
+        Provider.of<AppointmentProvider>(context, listen: false);
+
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: const Text('Bạn có chắc chắn muốn xóa lịch hẹn này khỏi danh sách? Thao tác này không thể hoàn tác.'),
+        actions: [
+          TextButton(
+            child: const Text('Không'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          TextButton(
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && authProvider.token != null) {
+      final success = await appointmentProvider.deleteAppointment(
+        token: authProvider.token!,
+        appointmentId: appointmentId,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Xóa lịch hẹn thành công!'
+                : 'Lỗi: ${appointmentProvider.fetchAppointmentsError ?? "Thao tác thất bại"}'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,6 +156,12 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             itemBuilder: (context, index) {
               final appointment = provider.myAppointments[index];
               final isCancelled = appointment.status.startsWith('canceled');
+              final isCompleted = appointment.status == 'completed';
+              
+              // Kiểm tra xem lịch hẹn đã qua chưa
+              final now = DateTime.now();
+              final appointmentDate = appointment.date;
+              final isPastAppointment = appointmentDate.isBefore(DateTime(now.year, now.month, now.day));
 
               IconData statusIcon;
               Color statusColor;
@@ -122,12 +169,30 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               if (isCancelled) {
                 statusIcon = Icons.cancel_outlined; // Icon gạch chéo
                 statusColor = Colors.red; // Màu đỏ
-              } else if (appointment.status == 'completed') {
+              } else if (isCompleted) {
                 statusIcon = Icons.check_circle_outline;
                 statusColor = Colors.green;
               } else {
                 statusIcon = Icons.medical_services_outlined; // Icon mặc định
                 statusColor = Theme.of(context).primaryColor;
+              }
+
+              // Xác định nút trailing dựa trên trạng thái
+              Widget? trailingWidget;
+              if (isCancelled || isPastAppointment || isCompleted) {
+                // Hiển thị nút xóa cho lịch đã hủy, đã qua hoặc đã hoàn thành
+                trailingWidget = IconButton(
+                  icon: const Icon(Icons.delete_forever, color: Colors.red),
+                  tooltip: 'Xóa lịch hẹn',
+                  onPressed: () => _deleteAppointment(appointment.id),
+                );
+              } else {
+                // Hiển thị nút hủy cho lịch còn hiệu lực
+                trailingWidget = IconButton(
+                  icon: const Icon(Icons.cancel_outlined, color: Colors.orange),
+                  tooltip: 'Hủy lịch hẹn',
+                  onPressed: () => _cancelAppointment(appointment.id),
+                );
               }
 
               return Card(
@@ -162,12 +227,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                       Text('Giờ: ${appointment.slotStart}'),
                     ],
                   ),
-                  trailing: isCancelled
-                      ? null // Ẩn nút xóa nếu đã hủy
-                      : IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () => _cancelAppointment(appointment.id),
-                        ),
+                  trailing: trailingWidget,
                   isThreeLine: true,
                 ),
               );

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_frontend/models/appointment.dart';
 import 'package:hospital_frontend/screens/user_flow/appointment_detail_screen.dart';
-import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 
@@ -20,8 +19,6 @@ import '../screens/user_flow/profile_screen.dart';
 import '../screens/user_flow/edit_profile_screen.dart';
 import '../screens/user_flow/manage_patients_screen.dart';
 import '../screens/user_flow/edit_patient_screen.dart';
-import '../screens/doctor_panel/doctor_dashboard_screen.dart';
-import '../screens/doctor_panel/doctor_appointments_screen.dart';
 
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/doctors/manage_doctors_screen.dart';
@@ -29,6 +26,7 @@ import '../screens/admin/doctors/edit_doctor_screen.dart';
 import '../screens/admin/users/manage_users_screen.dart';
 import '../screens/admin/users/user_detail_screen.dart';
 import '../screens/admin/manage_schedules_screen.dart';
+import '../screens/admin/appointments/manage_appointment_screen.dart';
 
 
 class AppRouter {
@@ -51,17 +49,6 @@ class AppRouter {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/doctor',
-        builder: (context, state) => const DoctorDashboardScreen(),
-        routes: [
-          GoRoute(
-            path: 'appointments',
-            builder: (context, state) => const DoctorAppointmentsScreen(),
-          ),
-          
-        ],
       ),
       GoRoute(
         path: '/',
@@ -148,6 +135,10 @@ class AppRouter {
                 path: 'manage-schedules',
                 builder: (context, state) => const ManageSchedulesScreen(),
               ),
+              GoRoute(
+                path: 'manage-appointments',
+                builder: (context, state) => const ManageAppointmentsScreen(),
+              ),
             ],
           ),
         ],
@@ -171,21 +162,12 @@ class AppRouter {
       if (authStatus == AuthStatus.authenticated) {
         if (isAtAuthScreen || location == '/splash') {
           if (userRole == 'admin' || userRole == 'staff') return '/admin';
-          if (userRole == 'doctor') return '/doctor';
           return '/';
         }
 
         final isGoingToAdmin = location.startsWith('/admin');
-        
-        // === SỬA LỖI TẠI ĐÂY ===
-        // Điều kiện phải chặt chẽ: chỉ đúng khi đến '/doctor' hoặc '/doctor/...'
-        final isGoingToDoctor = location == '/doctor' || location.startsWith('/doctor/');
 
         if (isGoingToAdmin && !(userRole == 'admin' || userRole == 'staff')) {
-          return '/';
-        }
-
-        if (isGoingToDoctor && userRole != 'doctor') {
           return '/';
         }
       }
